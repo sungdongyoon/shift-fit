@@ -1,26 +1,30 @@
 @import "tailwindcss";
+@import "../styles/dds.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Shared control defaults; layout and component styling live in Tailwind classes. */
+@layer base {
+  button,
+  a,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  button {
+    cursor: pointer;
+    transition:
+      background 160ms,
+      opacity 160ms,
+      box-shadow 160ms;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  :is(button, a, input, select):focus-visible {
+    outline: 3px solid var(--color-border-focus);
+    outline-offset: 3px;
+  }
 }
