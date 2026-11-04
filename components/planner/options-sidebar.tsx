@@ -40,6 +40,6 @@ export const OptionsSidebar = () => (
   >
     <OffTargetSettings />
     <EmployeeList />
-    <ValidationNotice />
+    {/* <ValidationNotice /> */}
   </aside>
 );

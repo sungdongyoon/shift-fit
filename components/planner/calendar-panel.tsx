@@ -1,10 +1,13 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
+import { useHolidays } from "@/hooks/use-holidays";
 import { useMonthSchedule } from "@/hooks/use-month-schedule";
 import { colors, dateKey } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { CalendarDay } from "./calendar-day";
 import { Glyph } from "./glyph";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 
 export const CalendarPanel = () => {
   const {
@@ -17,6 +20,8 @@ export const CalendarPanel = () => {
     employees,
     workCount,
   } = useMonthSchedule();
+  const { holidays, status: holidayStatus, retry } = useHolidays(year);
+
   const ready = usePlannerStore((state) => state.storageStatus !== "loading");
   const selected = usePlannerStore((state) => state.view.selected);
   const hasEmployees = usePlannerStore(
@@ -44,17 +49,17 @@ export const CalendarPanel = () => {
               aria-label="이전 달"
               disabled={!ready}
               onClick={() => navigate(-1)}
-              className="h-7 w-[26px] rounded-[5px] border-0 bg-transparent text-[23px] text-content-secondary hover:bg-surface-hover"
+              className="h-7 w-[26px] flex justify-center items-center border-0 rounded-[5px] border bg-transparent text-[23px] text-content-secondary hover:bg-surface-hover"
             >
-              ‹
+              <FaChevronLeft className="size-3" />
             </button>
             <button
               aria-label="다음 달"
               disabled={!ready}
               onClick={() => navigate(1)}
-              className="h-7 w-[26px] rounded-[5px] border-0 bg-transparent text-[23px] text-content-secondary hover:bg-surface-hover"
+              className="h-7 w-[26px] flex justify-center items-center rounded-[5px] border-0 bg-transparent text-[23px] text-content-secondary hover:bg-surface-hover"
             >
-              ›
+              <FaChevronRight className="size-3" />
             </button>
           </div>
           <button
@@ -65,22 +70,31 @@ export const CalendarPanel = () => {
             오늘
           </button>
         </div>
-        <span className="flex items-center gap-1.5 rounded-md border border-line px-[9px] py-[7px] text-[10px] text-content-secondary max-[1200px]:hidden max-[640px]:flex max-[640px]:text-[9px]">
+        {/* <span className="flex items-center gap-1.5 rounded-md border border-line px-[9px] py-[7px] text-[10px] text-content-secondary max-[1200px]:hidden max-[640px]:flex max-[640px]:text-[9px]">
           <Glyph name="calendar" className="size-[13px]" />
           월간 보기
-        </span>
+        </span> */}
       </div>
-      <div className="flex items-center justify-between gap-2 px-[23px] pb-[19px] text-[10px] text-content-tertiary max-[1200px]:px-3.5 max-[1200px]:pb-3.5">
-        <span className="first:flex first:items-center first:gap-1.5 max-[1200px]:last:hidden">
-          <span className="inline-block size-[5px] rounded-full bg-brand" />
-          {employees.length}명의 근무표{" "}
-          <i className="mx-0.5 text-content-disabled not-italic">·</i> 총{" "}
-          {workCount}회 근무
-        </span>
-        <span className="first:flex first:items-center first:gap-1.5 max-[1200px]:last:hidden">
-          일정은 자동으로 저장돼요
-        </span>
-      </div>
+      {(holidayStatus === "error" || holidayStatus === "unavailable") && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-2 border-t border-line px-4 py-2 text-[10px] text-content-secondary"
+        >
+          <span>
+            {holidayStatus === "unavailable"
+              ? `${year}년 공휴일 최신 정보가 아직 제공되지 않아요.`
+              : "공휴일 최신 정보를 확인하지 못했어요."}
+            {Object.keys(holidays).length > 0 &&
+              " 저장된 공휴일을 표시하고 있어요."}
+          </span>
+          <button
+            onClick={retry}
+            className="shrink-0 underline underline-offset-2"
+          >
+            다시 확인
+          </button>
+        </div>
+      )}
       {selected && (
         <div className="flex justify-between gap-2 bg-brand-subtle px-5 py-2 text-[10px] text-brand-content">
           {employees.find((employee) => employee.id === selected)?.name} 님의
@@ -95,7 +109,7 @@ export const CalendarPanel = () => {
           {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
             <div
               key={day}
-              className={`border-y border-line bg-canvas-subtle px-2 py-3 text-center text-[10px] font-semibold ${index === 0 ? "text-[#d86060]" : index === 6 ? "text-[#5686d6]" : ""}`}
+              className={`border-y border-line bg-canvas-subtle px-2 py-3 text-center text-[10px] font-semibold ${index === 0 ? "text-danger" : index === 6 ? "text-[#5686d6]" : ""}`}
             >
               {day}
             </div>
@@ -118,6 +132,7 @@ export const CalendarPanel = () => {
                 date={date}
                 day={day}
                 column={index % 7}
+                holiday={holidays[date]}
                 employees={employees}
               />
             );
@@ -156,15 +171,6 @@ export const CalendarPanel = () => {
           )}
         </div>
       )}
-      <div className="flex min-h-[42px] items-center justify-between gap-2.5 px-4 py-2.5 text-[9px] text-content-tertiary">
-        <span className="first:flex first:items-center first:gap-[5px] max-[1200px]:last:hidden">
-          <Glyph name="clock" className="size-3" />
-          근무 시작 시간순 정렬
-        </span>
-        <span className="first:flex first:items-center first:gap-[5px] max-[1200px]:last:hidden">
-          빈 날짜 없이, 직원당 하루 한 일정
-        </span>
-      </div>
     </section>
   );
 };

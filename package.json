@@ -7,12 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test scripts/*.test.*"
+    "test": "tsx --test scripts/*.test.*",
+    "check:duplicates": "node scripts/check-duplicates.mjs",
+    "clean:duplicates": "node scripts/check-duplicates.mjs --clean",
+    "predev": "npm run check:duplicates",
+    "prebuild": "npm run check:duplicates"
   },
   "dependencies": {
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-icons": "^5.7.0",
     "zustand": "^5.0.16"
   },
   "devDependencies": {

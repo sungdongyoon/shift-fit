@@ -33,7 +33,7 @@ export const StorageAlert = () => {
       role="alert"
     >
       기존 저장 데이터를 읽지 못했어요. 덮어쓰기를 막기 위해 자동 저장을
-      멈췄어요.{" "}
+      멈췄어요.
       <button onClick={download} className="ml-2.5 underline">
         기존 데이터 내려받기
       </button>

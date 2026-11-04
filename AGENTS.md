@@ -36,3 +36,9 @@ Before the final response, run one reporting pass. If candidates remain, from th
 - Extract repeated UI into components instead of creating page-specific CSS classes or @apply wrappers.
 - Keep standalone CSS for shared base defaults, design tokens, or cases where Tailwind is inefficient.
 - For user-defined colors, use inline CSS custom properties with statically written Tailwind classes; do not construct utility names dynamically.
+
+## Source editing and readability
+
+- Edit canonical project files directly in place. Do not stage source trees elsewhere and copy them back with cp, rsync, shutil.copy2, or copytree. Do not copy source-file metadata from staging snapshots.
+- Do not create numbered source copies or edit files with names such as page 2.tsx. Run npm run check:duplicates before finishing.
+- Preserve one blank line after use client, after the import block, before JSX return, and between unrelated hooks, functions, types, and constants. Closely related declarations and repeated calls to the same hook may stay together.

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useMonthSchedule } from "@/hooks/use-month-schedule";
 import { colors, labels, type Category } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { FaPlus } from "react-icons/fa6";
+import { FaSearch } from "react-icons/fa";
+import { BsThreeDots } from "react-icons/bs";
 
 export const EmployeeList = () => {
   const { employees, stats, target } = useMonthSchedule();
@@ -17,7 +20,7 @@ export const EmployeeList = () => {
     <div className="pt-[22px] max-[960px]:pt-0">
       <PanelHeading title="근무자" count={employees.length}>
         <button
-          className="size-[26px] rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
+          className="size-[26px] flex justify-center items-center rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
           aria-label="근무자 추가"
           disabled={!ready}
           onClick={() =>
@@ -28,7 +31,7 @@ export const EmployeeList = () => {
             })
           }
         >
-          +
+          <FaPlus className="size-3" />
         </button>
       </PanelHeading>
       <p className="mt-[9px] mb-[19px] text-[10px] leading-[1.6] text-content-tertiary">
@@ -36,7 +39,7 @@ export const EmployeeList = () => {
       </p>
       <label className="mb-2 flex items-center gap-[7px] rounded-[7px] border border-line px-2.5 py-2">
         <span className="text-xl/normal leading-4 text-content-tertiary">
-          ⌕
+          <FaSearch className="size-3" />
         </span>
         <input
           aria-label="근무자 검색"
@@ -46,13 +49,13 @@ export const EmployeeList = () => {
           className="min-w-0 w-full border-0 bg-transparent text-[11px] text-content outline-offset-[6px] placeholder:text-content-disabled"
         />
       </label>
-      <div className="flex max-h-[510px] flex-col gap-[3px] overflow-y-auto p-[3px] max-[960px]:grid max-[960px]:max-h-[360px] max-[960px]:grid-cols-2">
+      <div className="flex max-h-[510px] flex-col gap-[9px] overflow-y-auto p-[3px] max-[960px]:gap-[3px] max-[960px]:grid max-[960px]:max-h-[360px] max-[960px]:grid-cols-2">
         {stats
           .filter((e) => e.name.includes(search.trim()))
           .map((employee) => (
             <div
               key={employee.id}
-              className="rounded-control border border-transparent px-[7px] py-[13px] data-[selected=true]:border-brand data-[selected=true]:bg-brand-subtle [&:not(:first-child)]:border-t-line max-[960px]:[&:not(:first-child)]:border-t-transparent"
+              className="relative rounded-control border border-transparent px-[7px] py-[13px] before:absolute before:inset-x-[7px] before:-top-[6px] before:h-px before:bg-line before:content-[''] first:before:hidden data-[selected=true]:border-brand data-[selected=true]:bg-brand-subtle max-[960px]:before:hidden"
               data-selected={selected === employee.id}
             >
               <div className="flex items-center gap-[5px]">
@@ -93,7 +96,7 @@ export const EmployeeList = () => {
                     })
                   }
                 >
-                  ⋯
+                  <BsThreeDots className="size-3" />
                 </button>
               </div>
               <div className="mt-[13px] ml-[38px] grid grid-cols-4 gap-[5px] max-[1200px]:ml-0 max-[960px]:ml-[38px] max-[640px]:ml-0">

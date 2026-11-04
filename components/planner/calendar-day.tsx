@@ -1,4 +1,5 @@
 "use client";
+
 import { memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -9,6 +10,7 @@ import {
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { tint } from "./presentation";
+import { FaPlus } from "react-icons/fa6";
 
 const DEFAULT_OFF: Assignment = { category: "off" };
 
@@ -16,11 +18,12 @@ type CalendarDayProps = {
   date: string;
   day: number;
   column: number;
+  holiday?: string;
   employees: Employee[];
 };
 
 export const CalendarDay = memo(
-  ({ date, day, column, employees }: CalendarDayProps) => {
+  ({ date, day, column, holiday, employees }: CalendarDayProps) => {
     const today = usePlannerStore((state) => state.view.today);
     const selected = usePlannerStore((state) => state.view.selected);
     const addAssignment = usePlannerStore((state) => state.addAssignment);
@@ -58,23 +61,34 @@ export const CalendarDay = memo(
       [employees, assignments],
     );
     const monthNumber = Number(date.slice(5, 7));
+    const isRedDay = Boolean(holiday) || column === 0;
+
     return (
       <div className="group/day min-h-[127px] min-w-0 border-r border-b border-line px-1.5 pt-2 pb-2.5 [&:nth-child(7n)]:border-r-0 min-[1600px]:min-h-[150px] max-[640px]:min-h-[120px]">
         <div className="mb-[5px] flex min-h-[22px] items-center gap-[3px]">
           <span
-            className={`grid size-[22px] place-items-center text-[11px] min-[1600px]:text-xs/normal ${date === today ? "rounded-full bg-brand font-bold text-on-brand" : column === 0 ? "text-[#d86060]" : column === 6 ? "text-[#5686d6]" : ""}`}
+            aria-current={date === today ? "date" : undefined}
+            className={`grid size-[22px] shrink-0 place-items-center text-[11px] min-[1600px]:text-xs/normal ${date === today ? `rounded-full font-bold ${isRedDay ? "bg-danger-subtle text-danger" : "bg-brand text-on-brand"}` : isRedDay ? "text-danger" : column === 6 ? "text-[#5686d6]" : ""}`}
           >
             {day}
           </span>
           {date === today && (
             <span className="text-[8px] text-brand-content">오늘</span>
           )}
+          {holiday && (
+            <span
+              className="min-w-0 truncate text-[9px] font-medium text-danger"
+              title={holiday}
+            >
+              {holiday}
+            </span>
+          )}
           <button
-            className="ml-auto size-[22px] shrink-0 rounded-[5px] border-0 bg-surface-hover text-lg/normal text-content-secondary opacity-0 group-hover/day:opacity-100 group-focus-within/day:opacity-100 focus-visible:opacity-100 hover:bg-brand-subtle hover:text-brand-content max-[640px]:opacity-100 [@media(hover:none)]:opacity-100"
+            className="ml-auto size-[22px] flex justify-center items-center shrink-0 rounded-[5px] border-0 bg-surface-hover text-lg/normal text-content-secondary opacity-0 group-hover/day:opacity-100 group-focus-within/day:opacity-100 focus-visible:opacity-100 hover:bg-brand-subtle hover:text-brand-content max-[640px]:opacity-100 [@media(hover:none)]:opacity-100"
             aria-label={`${monthNumber}월 ${day}일 근무 추가`}
             onClick={() => addAssignment(date)}
           >
-            +
+            <FaPlus className="size-3" />
           </button>
         </div>
         <div className="flex flex-col gap-1">

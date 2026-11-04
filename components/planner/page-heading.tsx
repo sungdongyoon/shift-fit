@@ -19,7 +19,7 @@ export const PageHeading = () => {
           MAKE EVERY SHIFT FIT
         </div>
         <h1 className="text-[27px] leading-[1.45] font-bold tracking-[-1.2px] max-[960px]:text-[23px] max-[640px]:text-[22px]">
-          우리 팀의 하루를, 빈틈없이.
+          편리하게 스케줄을 관리해보세요.
         </h1>
         <p className="mt-[7px] text-[13px] text-content-tertiary max-[640px]:text-[11px]">
           근무부터 휴무까지, 한눈에 보고 편하게 계획하세요.

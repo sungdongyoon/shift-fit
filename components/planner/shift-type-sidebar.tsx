@@ -6,6 +6,7 @@ import { assignmentColor, colors, labels, type Category } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { Glyph } from "./glyph";
 import { tint } from "./presentation";
+import { FaArrowUpRightFromSquare, FaPlus } from "react-icons/fa6";
 
 export const ShiftTypeSidebar = () => {
   const types = useShiftTypes();
@@ -18,7 +19,7 @@ export const ShiftTypeSidebar = () => {
     >
       <PanelHeading title="근무 타입" count={types.length}>
         <button
-          className="size-[26px] rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
+          className="flex justify-center items-center size-7 rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
           aria-label="근무 타입 추가"
           onClick={() =>
             open({
@@ -30,11 +31,11 @@ export const ShiftTypeSidebar = () => {
             })
           }
         >
-          +
+          <FaPlus className="size-4" />
         </button>
       </PanelHeading>
       <p className="mt-[9px] mb-[19px] text-[10px] leading-[1.6] text-content-tertiary max-[640px]:mb-3">
-        우리 매장에 맞는 근무를 만들어요.
+        필요한 근무 타입을 생성해보세요.
       </p>
       <div className="flex flex-col gap-[9px] max-[640px]:flex-row max-[640px]:overflow-x-auto max-[640px]:p-0.5">
         {types.map((type) => (
@@ -55,7 +56,7 @@ export const ShiftTypeSidebar = () => {
               </small>
             </span>
             <span className="ml-auto text-[13px] text-content-disabled opacity-0 group-hover/type:opacity-100 group-focus-visible/type:opacity-100 max-[1200px]:hidden [@media(hover:none)]:opacity-100">
-              ↗
+              <FaArrowUpRightFromSquare className="size-3" />
             </span>
           </button>
         ))}

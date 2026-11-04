@@ -15,9 +15,7 @@ export const OffTargetSettings = () => {
 
   return (
     <div className="border-b border-line pb-[23px] max-[960px]:border-b-0 max-[640px]:border-b max-[640px]:pb-5">
-      <PanelHeading title="근무 설정">
-        <span className="text-[17px] text-content-tertiary">⚙</span>
-      </PanelHeading>
+      <PanelHeading title="근무 설정"></PanelHeading>
       <label
         className="mt-5 mb-[9px] block text-[11px] text-content-secondary"
         htmlFor="monthly-off"
