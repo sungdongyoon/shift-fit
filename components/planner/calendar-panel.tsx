@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { useHolidays } from "@/hooks/use-holidays";
-import { useMonthSchedule } from "@/hooks/use-month-schedule";
-import { colors, dateKey } from "@/lib/schedule";
+import { useMonthCalendar } from "@/hooks/use-month-schedule";
+import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
-import { CalendarDay } from "./calendar-day";
+import { CalendarGrid } from "./calendar-grid";
 import { Glyph } from "./glyph";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 
@@ -14,12 +14,10 @@ export const CalendarPanel = () => {
     month,
     year,
     monthNumber,
-    days,
-    offset,
     cells,
     employees,
-    workCount,
-  } = useMonthSchedule();
+  } = useMonthCalendar();
+
   const { holidays, status: holidayStatus, retry } = useHolidays(year);
 
   const ready = usePlannerStore((state) => state.storageStatus !== "loading");
@@ -32,6 +30,9 @@ export const CalendarPanel = () => {
   const clearSelection = usePlannerStore((state) => state.clearSelection);
   const open = usePlannerStore((state) => state.openEditor);
   const loadExample = usePlannerStore((state) => state.loadExample);
+
+  const selectedEmployee = employees.find((employee) => employee.id === selected);
+  const showHolidayNotice = holidayStatus === "error" || holidayStatus === "unavailable";
 
   return (
     <section
@@ -75,7 +76,7 @@ export const CalendarPanel = () => {
           월간 보기
         </span> */}
       </div>
-      {(holidayStatus === "error" || holidayStatus === "unavailable") && (
+      {showHolidayNotice && (
         <div
           role="status"
           className="flex items-center justify-between gap-2 border-t border-line px-4 py-2 text-[10px] text-content-secondary"
@@ -97,48 +98,14 @@ export const CalendarPanel = () => {
       )}
       {selected && (
         <div className="flex justify-between gap-2 bg-brand-subtle px-5 py-2 text-[10px] text-brand-content">
-          {employees.find((employee) => employee.id === selected)?.name} 님의
+          {selectedEmployee?.name} 님의
           일정을 강조하고 있어요
           <button onClick={clearSelection} className="border-0 bg-transparent">
             강조 해제 ×
           </button>
         </div>
       )}
-      <div className="flex-1 overflow-x-auto max-[640px]:max-h-[650px]">
-        <div className="grid min-h-full min-w-[560px] auto-rows-auto grid-cols-7 max-[960px]:min-w-[520px] max-[640px]:min-w-[560px]">
-          {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
-            <div
-              key={day}
-              className={`border-y border-line bg-canvas-subtle px-2 py-3 text-center text-[10px] font-semibold ${index === 0 ? "text-danger" : index === 6 ? "text-[#5686d6]" : ""}`}
-            >
-              {day}
-            </div>
-          ))}
-          {Array.from({ length: cells }, (_, index) => {
-            const day = index - offset + 1;
-            if (day < 1 || day > days)
-              return (
-                <div
-                  key={`outside-${index}`}
-                  className="min-h-[127px] min-w-0 border-r border-b border-line bg-canvas-subtle p-[13px] text-[11px] text-content-disabled [&:nth-child(7n)]:border-r-0 min-[1600px]:min-h-[150px] max-[640px]:min-h-[120px]"
-                >
-                  <span>{new Date(year, monthNumber - 1, day).getDate()}</span>
-                </div>
-              );
-            const date = dateKey(month, day);
-            return (
-              <CalendarDay
-                key={date}
-                date={date}
-                day={day}
-                column={index % 7}
-                holiday={holidays[date]}
-                employees={employees}
-              />
-            );
-          })}
-        </div>
-      </div>
+      <CalendarGrid cells={cells} holidays={holidays} employees={employees} />
       {ready && !employees.length && (
         <div className="absolute top-[220px] left-1/2 z-1 w-[330px] max-w-[90%] -translate-x-1/2 rounded-[14px] border border-line bg-canvas px-5 py-[26px] text-center shadow-[0_6px_45px_#1717190a] max-[640px]:top-[185px]">
           <div className="mx-auto mb-3.5 grid size-10 place-items-center rounded-xl bg-brand-subtle text-brand-content">

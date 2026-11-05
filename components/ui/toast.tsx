@@ -1,12 +1,15 @@
 "use client";
+
 import { Alert, type AlertProps } from "./alert";
 import { IconButton } from "./icon-button";
 import { Icon } from "./icon";
+
 export type ToastProps = Omit<AlertProps, "className"> & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   className?: string;
 };
+
 /** Persistent until dismissed: essential actions are never lost to a timer. Position via className. */
 export const Toast = ({
   open,

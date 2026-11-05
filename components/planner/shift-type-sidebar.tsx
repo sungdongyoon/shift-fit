@@ -10,7 +10,18 @@ import { FaArrowUpRightFromSquare, FaPlus } from "react-icons/fa6";
 
 export const ShiftTypeSidebar = () => {
   const types = useShiftTypes();
+
   const open = usePlannerStore((state) => state.openEditor);
+
+  const addShiftType = () => {
+    open({
+      kind: "type",
+      name: "",
+      start: "09:00",
+      end: "18:00",
+      color: colors[types.length % colors.length],
+    });
+  };
 
   return (
     <aside
@@ -21,15 +32,7 @@ export const ShiftTypeSidebar = () => {
         <button
           className="flex justify-center items-center size-7 rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
           aria-label="근무 타입 추가"
-          onClick={() =>
-            open({
-              kind: "type",
-              name: "",
-              start: "09:00",
-              end: "18:00",
-              color: colors[types.length % colors.length],
-            })
-          }
+          onClick={addShiftType}
         >
           <FaPlus className="size-4" />
         </button>
@@ -63,15 +66,7 @@ export const ShiftTypeSidebar = () => {
       </div>
       <button
         className="mt-3 min-h-9 w-full rounded-[7px] border border-dashed border-line bg-transparent text-[11px] text-content-secondary hover:bg-canvas-subtle max-[640px]:mt-2.5"
-        onClick={() =>
-          open({
-            kind: "type",
-            name: "",
-            start: "09:00",
-            end: "18:00",
-            color: colors[types.length % colors.length],
-          })
-        }
+        onClick={addShiftType}
       >
         + 근무 타입 추가
       </button>

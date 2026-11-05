@@ -14,11 +14,13 @@ const fixture = async context => {
   await writeFile(join(projectRoot, 'package.json'), '{"name":"shiftfit"}');
   await writeFile(join(projectRoot, 'package-lock.json'), '{"lockfileVersion":3}');
   let installs = 0;
+
   const install = async root => {
     installs++;
     await mkdir(join(root, 'node_modules/next/dist/bin'), { recursive: true });
     await writeFile(join(root, 'node_modules/next/dist/bin/next'), '// installed next');
   };
+
   return { projectRoot, runtimeRoot, install, installs: () => installs };
 };
 

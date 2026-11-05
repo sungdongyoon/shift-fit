@@ -1,7 +1,8 @@
 "use client";
+
 import { useMonthEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
-import type { AssignmentEditor, Editor } from "@/lib/editor";
-import { getAssignment, labels, type Category } from "@/lib/schedule";
+import { EXISTING_SHIFT_TYPE_ID, type AssignmentEditor, type Editor } from "@/lib/editor";
+import { categories, getAssignment, labels } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 type AssignmentFieldsProps = {
@@ -14,7 +15,9 @@ export const AssignmentFields = ({
   onChange,
 }: AssignmentFieldsProps) => {
   const employees = useMonthEmployees();
+
   const types = useShiftTypes();
+
   const entries = usePlannerStore((state) => state.data.entries);
   const existing = getAssignment({ entries }, editor.date, editor.employee);
 
@@ -48,7 +51,7 @@ export const AssignmentFields = ({
         role="group"
         aria-label="일정 종류"
       >
-        {(Object.keys(labels) as Category[]).map((category) => (
+        {categories.map((category) => (
           <button
             key={category}
             type="button"
@@ -74,8 +77,8 @@ export const AssignmentFields = ({
             <option value="" disabled>
               근무 타입 선택
             </option>
-            {editor.typeId === "__existing" && (
-              <option value="__existing">
+            {editor.typeId === EXISTING_SHIFT_TYPE_ID && (
+              <option value={EXISTING_SHIFT_TYPE_ID}>
                 {existing.shift?.name} · 기존 배정 유지
               </option>
             )}
@@ -86,7 +89,7 @@ export const AssignmentFields = ({
               </option>
             ))}
           </select>
-          {!types.length && editor.typeId !== "__existing" && (
+          {!types.length && editor.typeId !== EXISTING_SHIFT_TYPE_ID && (
             <small className="text-[11px] text-danger">
               먼저 왼쪽에서 근무 타입을 추가해 주세요.
             </small>

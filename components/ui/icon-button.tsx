@@ -1,4 +1,5 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
+
 export type IconButtonProps = Omit<
   ComponentPropsWithRef<"button">,
   "children"
@@ -6,6 +7,7 @@ export type IconButtonProps = Omit<
   "aria-label": string;
   icon: ReactNode;
 };
+
 export const IconButton = ({
   icon,
   type = "button",

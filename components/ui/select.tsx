@@ -1,6 +1,8 @@
 "use client";
+
 import { useId, type ComponentPropsWithRef } from "react";
 import { Icon } from "./icon";
+
 export type SelectProps = Omit<ComponentPropsWithRef<"select">, "children"> & {
   label: string;
   placeholder?: string;
@@ -12,6 +14,7 @@ export type SelectProps = Omit<ComponentPropsWithRef<"select">, "children"> & {
   error?: string;
   helperText?: string;
 };
+
 export const Select = ({
   id,
   label,
@@ -26,6 +29,7 @@ export const Select = ({
   const generated = useId();
   const inputId = id ?? generated;
   const message = error || helperText;
+
   return (
     <div className="flex w-full flex-col gap-2">
       <label htmlFor={inputId} className="type-label text-content">

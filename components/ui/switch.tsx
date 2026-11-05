@@ -1,10 +1,12 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
+
 export type SwitchProps = Omit<
   ComponentPropsWithRef<"input">,
   "type" | "role"
 > & {
   label: ReactNode;
 };
+
 export const Switch = ({ label, className = "", ...props }: SwitchProps) => {
   return (
     <label

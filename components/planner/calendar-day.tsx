@@ -5,14 +5,13 @@ import { useShallow } from "zustand/react/shallow";
 import {
   assignmentColor,
   labels,
-  type Assignment,
+  DEFAULT_OFF_ASSIGNMENT,
   type Employee,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { compareCalendarRows } from "@/lib/calendar";
 import { tint } from "./presentation";
 import { FaPlus } from "react-icons/fa6";
-
-const DEFAULT_OFF: Assignment = { category: "off" };
 
 type CalendarDayProps = {
   date: string;
@@ -20,6 +19,18 @@ type CalendarDayProps = {
   column: number;
   holiday?: string;
   employees: Employee[];
+};
+
+const dateAppearance = (isToday: boolean, isRedDay: boolean, column: number) => {
+  if (isToday && isRedDay) return "rounded-full bg-danger-subtle font-bold text-danger";
+
+  if (isToday) return "rounded-full bg-brand font-bold text-on-brand";
+
+  if (isRedDay) return "text-danger";
+
+  if (column === 6) return "text-[#5686d6]";
+
+  return "";
 };
 
 export const CalendarDay = memo(
@@ -33,10 +44,11 @@ export const CalendarDay = memo(
       useShallow((state) =>
         employees.map(
           (employee) =>
-            state.data.entries[`${date}:${employee.id}`] ?? DEFAULT_OFF,
+            state.data.entries[`${date}:${employee.id}`] ?? DEFAULT_OFF_ASSIGNMENT,
         ),
       ),
     );
+
     const rows = useMemo(
       () =>
         employees
@@ -44,35 +56,25 @@ export const CalendarDay = memo(
             employee,
             assignment: assignments[index],
           }))
-          .sort((a, b) => {
-            const aTime =
-              a.assignment.category === "work"
-                ? (a.assignment.shift?.start ?? "")
-                : `z${a.assignment.category}`;
-            const bTime =
-              b.assignment.category === "work"
-                ? (b.assignment.shift?.start ?? "")
-                : `z${b.assignment.category}`;
-            return (
-              aTime.localeCompare(bTime) ||
-              a.employee.name.localeCompare(b.employee.name, "ko")
-            );
-          }),
+          .sort(compareCalendarRows),
       [employees, assignments],
     );
+
     const monthNumber = Number(date.slice(5, 7));
+    const isToday = date === today;
     const isRedDay = Boolean(holiday) || column === 0;
+    const dateClasses = dateAppearance(isToday, isRedDay, column);
 
     return (
       <div className="group/day min-h-[127px] min-w-0 border-r border-b border-line px-1.5 pt-2 pb-2.5 [&:nth-child(7n)]:border-r-0 min-[1600px]:min-h-[150px] max-[640px]:min-h-[120px]">
         <div className="mb-[5px] flex min-h-[22px] items-center gap-[3px]">
           <span
-            aria-current={date === today ? "date" : undefined}
-            className={`grid size-[22px] shrink-0 place-items-center text-[11px] min-[1600px]:text-xs/normal ${date === today ? `rounded-full font-bold ${isRedDay ? "bg-danger-subtle text-danger" : "bg-brand text-on-brand"}` : isRedDay ? "text-danger" : column === 6 ? "text-[#5686d6]" : ""}`}
+            aria-current={isToday ? "date" : undefined}
+            className={`grid size-[22px] shrink-0 place-items-center text-[11px] min-[1600px]:text-xs/normal ${dateClasses}`}
           >
             {day}
           </span>
-          {date === today && (
+          {isToday && (
             <span className="text-[8px] text-brand-content">오늘</span>
           )}
           {holiday && (

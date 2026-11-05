@@ -10,6 +10,18 @@ type IdentityFieldsProps = {
   onChange: (editor: Editor) => void;
 };
 
+const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
+  if (editor.kind === "type") {
+    return "타입을 변경하거나 삭제해도 기존 일정의 시간과 색상은 유지돼요. 종료 시간이 이르면 다음 날 종료로 표시돼요.";
+  }
+
+  if (editor.id) {
+    return "기존 배정이 있는 근무자는 비활성화되며, 이번 달까지의 기록은 유지돼요.";
+  }
+
+  return "현재 월부터 등록돼요. 모든 날짜를 휴무로 채워 이름이 빠지지 않아요.";
+};
+
 export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
   <>
     <TextField
@@ -66,11 +78,7 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
       />
     </fieldset>
     <p className="rounded-control bg-canvas-subtle p-3 text-[11px] leading-[1.9] text-content-tertiary">
-      {editor.kind === "type"
-        ? "타입을 변경하거나 삭제해도 기존 일정의 시간과 색상은 유지돼요. 종료 시간이 이르면 다음 날 종료로 표시돼요."
-        : editor.id
-          ? "기존 배정이 있는 근무자는 비활성화되며, 이번 달까지의 기록은 유지돼요."
-          : "현재 월부터 등록돼요. 모든 날짜를 휴무로 채워 이름이 빠지지 않아요."}
+      {identityDescription(editor)}
     </p>
   </>
 );

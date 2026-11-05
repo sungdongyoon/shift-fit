@@ -1,8 +1,10 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { Icon } from "./icon";
+
 export type CheckboxProps = Omit<ComponentPropsWithRef<"input">, "type"> & {
   label: ReactNode;
 };
+
 export const Checkbox = ({
   label,
   className = "",

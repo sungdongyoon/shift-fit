@@ -4,7 +4,7 @@ import { useMonthSchedule } from "@/hooks/use-month-schedule";
 import { EmployeeList } from "./employee-list";
 import { OffTargetSettings } from "./off-target-settings";
 
-const ValidationNotice = () => {
+export const ValidationNotice = () => {
   const { employees, mismatch } = useMonthSchedule();
 
   if (!employees.length) return null;

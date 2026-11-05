@@ -1,4 +1,5 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
+
 export type RadioProps = Omit<
   ComponentPropsWithRef<"input">,
   "type" | "name" | "value"
@@ -7,6 +8,7 @@ export type RadioProps = Omit<
   name: string;
   value: string;
 };
+
 export const Radio = ({ label, className = "", ...props }: RadioProps) => {
   return (
     <label

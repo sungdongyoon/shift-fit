@@ -1,5 +1,7 @@
 "use client";
+
 import type { ComponentPropsWithRef } from "react";
+
 export type ChipProps = Omit<
   ComponentPropsWithRef<"button">,
   "onChange" | "aria-pressed"
@@ -7,6 +9,7 @@ export type ChipProps = Omit<
   selected: boolean;
   onSelectedChange?: (selected: boolean) => void;
 };
+
 export const Chip = ({
   selected,
   onSelectedChange,

@@ -1,5 +1,7 @@
 import type { ComponentPropsWithRef } from "react";
+
 export type Tone = "neutral" | "brand" | "success" | "warning" | "danger";
+
 export const toneClasses: Record<Tone, string> = {
   neutral: "bg-surface-hover text-content-secondary",
   brand: "bg-brand-subtle text-brand-content",
@@ -7,9 +9,11 @@ export const toneClasses: Record<Tone, string> = {
   warning: "bg-warning-subtle text-warning",
   danger: "bg-danger-subtle text-danger",
 };
+
 export type BadgeProps = ComponentPropsWithRef<"span"> & {
   tone?: Tone;
 };
+
 export const Badge = ({
   tone = "neutral",
   className = "",

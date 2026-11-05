@@ -12,22 +12,27 @@ type HolidayStore = {
   load: (year: number) => Promise<void>;
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const REQUEST_TIMEOUT_MS = 5000;
+const MIN_YEAR = 1900;
+const MAX_YEAR = 9999;
 
 export const createHolidayStore = (fetcher: typeof fetch = fetch) =>
   createStore<HolidayStore>()((set, get) => ({
     years: {},
     load: async (year) => {
-      if (!Number.isInteger(year) || year < 1900 || year > 9999) return;
+      if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) return;
 
       const previous = get().years[year];
 
-      if (
-        previous?.status === "loading" ||
-        (previous?.status === "ready" && Date.now() - previous.checkedAt < DAY_MS)
-      ) return;
+      const isLoading = previous?.status === "loading";
+      const isFresh = previous?.status === "ready" &&
+        Date.now() - previous.checkedAt < CACHE_TTL_MS;
+
+      if (isLoading || isFresh) return;
 
       const days = previous?.days ?? bundledHolidays[year] ?? {};
+
       const update = (entry: HolidayEntry) =>
         set((state) => ({ years: { ...state.years, [year]: entry } }));
 
@@ -35,11 +40,12 @@ export const createHolidayStore = (fetcher: typeof fetch = fetch) =>
 
       try {
         const response = await fetcher(holidaySource(year), {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
 
         if (response.status === 404) {
           update({ days, status: "unavailable", checkedAt: 0 });
+
           return;
         }
 
@@ -49,6 +55,7 @@ export const createHolidayStore = (fetcher: typeof fetch = fetch) =>
 
         if (!Object.keys(fresh).length) {
           update({ days, status: "unavailable", checkedAt: 0 });
+
           return;
         }
 

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "근무부터 휴무까지, 빈틈없이. 직원별 근무 배정과 월 휴무를 한눈에 관리하는 Shiftfit.",
 };
 
-const RootLayout = ({ children }: { children: React.ReactNode }) => {
+const RootLayout = ({ children }: { children: React.ReactNode; }) => {
   return (
     <html lang="ko" data-theme="light">
       <body>{children}</body>

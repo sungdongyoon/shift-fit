@@ -1,10 +1,13 @@
 "use client";
+
 import { useId, type ComponentPropsWithRef } from "react";
+
 export type TextFieldProps = ComponentPropsWithRef<"input"> & {
   label: string;
   helperText?: string;
   error?: string;
 };
+
 export const TextField = ({
   id,
   label,
@@ -17,6 +20,7 @@ export const TextField = ({
   const generated = useId();
   const inputId = id ?? generated;
   const message = error || helperText;
+
   return (
     <div className="flex w-full flex-col gap-2">
       <label htmlFor={inputId} className="type-label text-content">

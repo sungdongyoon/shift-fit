@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { toneClasses } from "./badge";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
+
 export type AlertProps = {
   tone?: "info" | "success" | "warning" | "danger";
   title: string;
@@ -8,6 +9,14 @@ export type AlertProps = {
   urgent?: boolean;
   className?: string;
 };
+
+const toneIcons: Record<NonNullable<AlertProps["tone"]>, IconName> = {
+  info: "plus",
+  success: "check",
+  warning: "plus",
+  danger: "close",
+};
+
 export const Alert = ({
   tone = "info",
   title,
@@ -21,11 +30,7 @@ export const Alert = ({
       aria-atomic="true"
       className={`flex items-center gap-3 rounded-xl p-4 ${toneClasses[tone === "info" ? "brand" : tone]} ${className}`}
     >
-      <Icon
-        name={
-          tone === "success" ? "check" : tone === "danger" ? "close" : "plus"
-        }
-      />
+      <Icon name={toneIcons[tone]} />
       <div className="min-w-0 space-y-1">
         <p className="type-label">{title}</p>
         {description && (

@@ -42,3 +42,15 @@ Before the final response, run one reporting pass. If candidates remain, from th
 - Edit canonical project files directly in place. Do not stage source trees elsewhere and copy them back with cp, rsync, shutil.copy2, or copytree. Do not copy source-file metadata from staging snapshots.
 - Do not create numbered source copies or edit files with names such as page 2.tsx. Run npm run check:duplicates before finishing.
 - Preserve one blank line after use client, after the import block, before JSX return, and between unrelated hooks, functions, types, and constants. Closely related declarations and repeated calls to the same hook may stay together.
+
+## Maintainable implementation
+
+- Prioritize code the project owner can understand and edit locally. Use descriptive domain names; avoid cryptic abbreviations and compressed one-line logic.
+- Use arrow functions. Keep each function/component focused on one responsibility; extract cohesive UI or domain logic when it makes the flow easier to follow, without fragmenting simple code into unnecessary abstractions.
+- Avoid nested ternaries and deeply nested JSX conditions. Give complex conditions meaningful names and prefer clear early returns or explicit branches.
+- Keep JSX focused on presentation. Move substantial filtering, sorting, validation, and transformations into clearly named helpers or hooks when appropriate.
+- Prefer clear layout structure and normal document flow over fragile positioning and unexplained pixel offsets. Keep Tailwind utilities readable and reuse DDS tokens.
+- Keep state minimal: derive values from existing data instead of storing duplicates, and use Zustand for shared planner state. Local transient state may stay local.
+- Avoid repeated expensive work and unnecessarily broad store subscriptions. Add memoization only where it has a concrete benefit; do not trade readability for speculative optimization.
+- Use named constants for meaningful repeated values. Explain non-obvious constraints and tradeoffs in comments rather than narrating obvious code.
+- Preserve existing user edits, formatting conventions, and behavior. When modifying a section, improve readability within that scope and run checks appropriate to the change.

@@ -3,6 +3,7 @@ import type { PlannerStoreApi } from "./planner-store";
 
 // Keep the original key and raw Schedule format so existing schedules need no migration.
 export const STORAGE_KEY = "shiftfit.schedule.v1";
+
 export type PlannerStorage = Pick<Storage, "getItem" | "setItem">;
 
 export const connectPlannerStorage = (

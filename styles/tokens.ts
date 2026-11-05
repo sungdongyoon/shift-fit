@@ -44,6 +44,7 @@ export const palette = {
   "orange/70": "#FFC06E",
   "orange/95": "#FEF4E6"
 } as const;
+
 export const semanticTokens = {
   "bg/canvas": {
     "light": "#FFFFFF",
@@ -142,12 +143,19 @@ export const semanticTokens = {
     "dark": "#361E00"
   }
 } as const;
+
 export type Theme = 'light' | 'dark';
+
 export type ColorToken = keyof typeof semanticTokens;
+
 export const spacing = [0,2,4,8,12,16,20,24,32,40,48,64,80] as const;
+
 export const radii = [0, 4, 8, 12, 16, 24, 999] as const;
+
 export const breakpoints = { sm: 768, md: 992, lg: 1200, xl: 1600 } as const;
+
 export const fontFamily = 'Noto Sans KR';
+
 export const typography = {
   "Display": {
     "fontSize": 40,

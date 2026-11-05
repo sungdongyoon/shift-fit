@@ -1,13 +1,13 @@
 "use client";
 
 import { PanelHeading } from "./panel-heading";
-import { daysInMonth } from "@/lib/schedule";
+import { daysInMonth, DEFAULT_OFF_TARGET } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const OffTargetSettings = () => {
   const month = usePlannerStore((state) => state.view.month);
   const target = usePlannerStore(
-    (state) => state.data.targets[state.view.month] ?? 8,
+    (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
   const ready = usePlannerStore((state) => state.storageStatus !== "loading");
   const setOffTarget = usePlannerStore((state) => state.setOffTarget);

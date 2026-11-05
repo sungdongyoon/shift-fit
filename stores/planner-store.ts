@@ -1,5 +1,5 @@
 import { createStore } from "zustand/vanilla";
-import type { Editor } from "../lib/editor";
+import { EXISTING_SHIFT_TYPE_ID, type Editor } from "../lib/editor";
 import {
   createExampleSchedule,
   removeScheduleEditor,
@@ -8,14 +8,24 @@ import {
 import {
   activeEmployees,
   daysInMonth,
+  DEFAULT_OFF_TARGET,
   getAssignment,
   initial,
   monthKey,
   type Schedule,
 } from "../lib/schedule";
 
-type ViewState = { month: string; today: string; selected: string };
-type ToastState = { message: string; undo?: Schedule } | null;
+type ViewState = {
+  month: string;
+  today: string;
+  selected: string;
+};
+
+type ToastState = {
+  message: string;
+  undo?: Schedule;
+} | null;
+
 export type StorageStatus = "loading" | "saved" | "blocked" | "failed";
 
 export type PlannerState = {
@@ -74,15 +84,19 @@ export const createPlannerStore = () =>
       addAssignment: (date) => {
         const { data, view, notify, openEditor } = get();
         const employees = activeEmployees(data, view.month);
-        if (!employees.length)
-          return notify("먼저 우측에서 근무자를 추가해 주세요.");
+        if (!employees.length) {
+          notify("먼저 우측에서 근무자를 추가해 주세요.");
+
+          return;
+        }
+
         const types = data.types.filter((type) => !type.archived);
+        const selectedEmployee = employees.find((employee) => employee.id === view.selected);
+
         openEditor({
           kind: "assignment",
           date,
-          employee:
-            employees.find((employee) => employee.id === view.selected)?.id ??
-            employees[0].id,
+          employee: selectedEmployee?.id ?? employees[0].id,
           category: types.length ? "work" : "off",
           typeId: types[0]?.id ?? "",
         });
@@ -96,7 +110,7 @@ export const createPlannerStore = () =>
           employee,
           category: assignment.category,
           typeId: assignment.shift
-            ? "__existing"
+            ? EXISTING_SHIFT_TYPE_ID
             : (data.types.find((type) => !type.archived)?.id ?? ""),
           original: true,
         });
@@ -106,6 +120,7 @@ export const createPlannerStore = () =>
         const result = saveScheduleEditor(data, view.month, editor);
         if (!result.ok) return result.error;
         commit(result.data, result.message, { editor: null });
+
         return null;
       },
       removeEditor: (editor) => {
@@ -155,9 +170,11 @@ export const createPlannerStore = () =>
           !Number.isInteger(target) ||
           target < 0 ||
           target > daysInMonth(view.month) ||
-          data.targets[view.month] === target
-        )
+          (data.targets[view.month] ?? DEFAULT_OFF_TARGET) === target
+        ) {
           return;
+        }
+
         commit(
           { ...data, targets: { ...data.targets, [view.month]: target } },
           "월 휴무 기준을 변경했어요.",
@@ -175,12 +192,20 @@ export const createPlannerStore = () =>
         set((state) => ({ toast: { ...state.toast, message } })),
       dismissToast: () => set({ toast: null }),
       undoLastChange: () => {
-        const previous = get().toast?.undo;
-        if (previous)
-          set({
-            data: previous,
-            toast: { message: "이전 상태로 되돌렸어요." },
-          });
+        const { toast, view } = get();
+        const previous = toast?.undo;
+
+        if (!previous) return;
+
+        const hasSelectedEmployee = activeEmployees(previous, view.month).some(
+          (employee) => employee.id === view.selected,
+        );
+
+        set({
+          data: previous,
+          view: { ...view, selected: hasSelectedEmployee ? view.selected : "" },
+          toast: { message: "이전 상태로 되돌렸어요." },
+        });
       },
     };
   });

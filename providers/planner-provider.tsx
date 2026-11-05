@@ -17,7 +17,7 @@ import { connectPlannerStorage } from "@/stores/planner-storage";
 
 const PlannerContext = createContext<PlannerStoreApi | null>(null);
 
-export const PlannerProvider = ({ children }: { children: ReactNode }) => {
+export const PlannerProvider = ({ children }: { children: ReactNode; }) => {
   const [store] = useState(createPlannerStore);
 
   useEffect(
@@ -35,5 +35,6 @@ export const usePlannerStore = <T,>(
 ): T => {
   const store = useContext(PlannerContext);
   if (!store) throw new Error("PlannerProvider 내부에서 사용해 주세요.");
+
   return useStore(store, selector);
 };

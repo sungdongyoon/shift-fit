@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initial, activeEmployees, assign, counts, getAssignment, readSaved, daysInMonth } from '../lib/schedule.ts';
+
 const employee = { id: 'employee-1', name: '테스트 직원', color: '#5686D6', from: '2026-10' };
+
 const base = () => ({ ...structuredClone(initial), employees: [employee] });
 
 test('모든 날짜는 직원 이름을 연결할 수 있는 휴무이며 월 전체 집계가 맞다', () => {

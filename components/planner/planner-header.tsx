@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { Glyph } from "./glyph";
 
 export const PlannerHeader = () => (
   <header className="flex h-[76px] items-center gap-[72px] border-b border-line bg-canvas px-10 max-[1200px]:gap-10 max-[1200px]:px-6 max-[640px]:h-16 max-[640px]:gap-6 max-[640px]:px-4">
-    <a
+    <Link
       className="flex items-center gap-[9px] text-[27px] font-extrabold tracking-[-1.5px] text-content no-underline max-[640px]:text-[23px]"
       href="/"
       aria-label="Shiftfit 홈"
@@ -14,7 +15,7 @@ export const PlannerHeader = () => (
       <span className="ml-[3px] self-center rounded border border-line px-[5px] py-[3px] text-[9px] tracking-[0.6px] text-content-tertiary max-[640px]:hidden">
         BETA
       </span>
-    </a>
+    </Link>
     <nav
       aria-label="주 메뉴"
       className="flex self-stretch items-stretch max-[640px]:text-[11px]"

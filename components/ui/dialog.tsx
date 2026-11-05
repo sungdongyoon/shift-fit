@@ -1,6 +1,8 @@
 "use client";
+
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Button } from "./button";
+
 export type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -11,6 +13,7 @@ export type DialogProps = {
   className?: string;
   id?: string;
 };
+
 export const Dialog = ({
   open,
   onOpenChange,
@@ -30,6 +33,7 @@ export const Dialog = ({
     if (!dialog) return;
     if (!open) {
       if (dialog.open) dialog.close();
+
       return;
     }
     const previous =
@@ -37,11 +41,13 @@ export const Dialog = ({
         ? document.activeElement
         : null;
     if (!dialog.open) dialog.showModal();
+
     return () => {
       if (dialog.open) dialog.close();
       if (previous?.isConnected) previous.focus();
     };
   }, [open]);
+
   return (
     <dialog
       ref={ref}

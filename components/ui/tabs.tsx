@@ -1,11 +1,14 @@
 "use client";
+
 import { useId, useRef, type ReactNode } from "react";
+
 export type TabItem = {
   value: string;
   label: string;
   content: ReactNode;
   disabled?: boolean;
 };
+
 export type TabsProps = {
   items: readonly TabItem[];
   value: string;
@@ -13,6 +16,18 @@ export type TabsProps = {
   label: string;
   className?: string;
 };
+
+const nextEnabledTab = (key: string, index: number, enabled: number[]) => {
+  if (key === "Home") return enabled[0];
+
+  if (key === "End") return enabled.at(-1);
+
+  const position = enabled.indexOf(index);
+  const direction = key === "ArrowRight" ? 1 : -1;
+
+  return enabled[(position + direction + enabled.length) % enabled.length];
+};
+
 export const Tabs = ({
   items,
   value,
@@ -21,6 +36,7 @@ export const Tabs = ({
   className = "",
 }: TabsProps) => {
   const id = useId();
+
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = items
     .map((item, index) => (item.disabled ? -1 : index))
@@ -29,6 +45,7 @@ export const Tabs = ({
     (item) => item.value === value && !item.disabled,
   );
   const active = selected >= 0 ? selected : enabled[0];
+
   return (
     <div className={className}>
       <div role="tablist" aria-label={label} className="flex overflow-x-auto">
@@ -52,18 +69,8 @@ export const Tabs = ({
               )
                 return;
               event.preventDefault();
-              const position = enabled.indexOf(index);
-              const next =
-                event.key === "Home"
-                  ? enabled[0]
-                  : event.key === "End"
-                    ? enabled.at(-1)
-                    : enabled[
-                        (position +
-                          (event.key === "ArrowRight" ? 1 : -1) +
-                          enabled.length) %
-                          enabled.length
-                      ];
+              const next = nextEnabledTab(event.key, index, enabled);
+
               if (next !== undefined) {
                 buttons.current[next]?.focus();
                 onValueChange(items[next].value);

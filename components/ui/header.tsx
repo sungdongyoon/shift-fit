@@ -1,8 +1,10 @@
 "use client";
+
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { Dialog } from "./dialog";
 import { IconButton } from "./icon-button";
 import { Icon } from "./icon";
+
 export type HeaderProps = {
   brand: ReactNode;
   brandHref?: string;
@@ -14,6 +16,7 @@ export type HeaderProps = {
   action?: ReactNode;
   className?: string;
 };
+
 export const Header = ({
   brand,
   brandHref = "/",
@@ -22,13 +25,17 @@ export const Header = ({
   className = "",
 }: HeaderProps) => {
   const [open, setOpen] = useState(false);
+
   const id = useId();
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
+
     const close = () => {
       if (media.matches) setOpen(false);
     };
+
     media.addEventListener("change", close);
+
     return () => media.removeEventListener("change", close);
   }, []);
   const links = navigation.map((item) => (
@@ -42,6 +49,7 @@ export const Header = ({
       {item.label}
     </a>
   ));
+
   return (
     <header className={`bg-canvas text-content ${className}`}>
       <div className="wds-container flex min-h-16 items-center justify-between gap-4">

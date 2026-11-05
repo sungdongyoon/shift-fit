@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { activeEmployees, counts, daysInMonth } from "@/lib/schedule";
+import { buildMonthCells } from "@/lib/calendar";
+import { activeEmployees, counts, DEFAULT_OFF_TARGET } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const useMonthEmployees = () => {
   const employees = usePlannerStore((state) => state.data.employees);
   const month = usePlannerStore((state) => state.view.month);
+
   return useMemo(
     () => (month ? activeEmployees({ employees }, month) : []),
     [employees, month],
@@ -15,37 +17,40 @@ export const useMonthEmployees = () => {
 
 export const useShiftTypes = () => {
   const types = usePlannerStore((state) => state.data.types);
+
   return useMemo(() => types.filter((type) => !type.archived), [types]);
 };
 
-export const useMonthSchedule = () => {
-  const data = usePlannerStore((state) => state.data);
+// Calendar layout does not depend on assignments or the monthly off target.
+export const useMonthCalendar = () => {
   const month = usePlannerStore((state) => state.view.month);
-  const employees = useMonthEmployees();
-  const target = data.targets[month] ?? 8;
-  const stats = useMemo(
-    () =>
-      employees.map((employee) => ({
-        ...employee,
-        counts: counts(data, month, employee.id),
-      })),
-    [data, month, employees],
-  );
-  const [year, monthNumber] = month.split("-").map(Number);
-  const days = month ? daysInMonth(month) : 0;
-  const offset = month ? new Date(year, monthNumber - 1, 1).getDay() : 0;
 
-  return {
-    month,
-    employees,
-    target,
-    stats,
-    days,
-    year,
-    monthNumber,
-    offset,
-    cells: Math.ceil((offset + days) / 7) * 7,
-    mismatch: stats.filter((employee) => employee.counts.off !== target).length,
-    workCount: stats.reduce((sum, employee) => sum + employee.counts.work, 0),
-  };
+  const employees = useMonthEmployees();
+
+  const cells = useMemo(() => buildMonthCells(month), [month]);
+  const [year = 0, monthNumber = 0] = month.split("-").map(Number);
+
+  return { month, year, monthNumber, cells, employees };
+};
+
+export const useMonthSchedule = () => {
+  const month = usePlannerStore((state) => state.view.month);
+  const entries = usePlannerStore((state) => state.data.entries);
+  const target = usePlannerStore(
+    (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
+  );
+
+  const employees = useMonthEmployees();
+
+  // Shift-type edits and off-target edits do not change assignment totals.
+  const stats = useMemo(
+    () => employees.map((employee) => ({
+      ...employee,
+      counts: counts({ entries }, month, employee.id),
+    })),
+    [entries, month, employees],
+  );
+  const mismatch = stats.filter((employee) => employee.counts.off !== target).length;
+
+  return { employees, target, stats, mismatch };
 };

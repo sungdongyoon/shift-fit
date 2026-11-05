@@ -11,12 +11,14 @@ import { createExampleSchedule } from "../lib/schedule-commands";
 import { editorFormReducer } from "../lib/editor";
 
 const NOW = new Date(2026, 9, 26);
+
 const makeStorage = (raw: string | null = null) => {
   const writes: string[] = [];
   let stored = raw;
   const storage: PlannerStorage = {
     getItem: (key) => {
       assert.equal(key, STORAGE_KEY);
+
       return stored;
     },
     setItem: (key, value) => {
@@ -25,6 +27,7 @@ const makeStorage = (raw: string | null = null) => {
       stored = value;
     },
   };
+
   return { storage, writes, read: () => stored };
 };
 

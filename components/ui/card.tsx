@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 export type CardProps = {
   title: string;
   subtitle?: string;
@@ -8,6 +9,7 @@ export type CardProps = {
   badge?: ReactNode;
   className?: string;
 };
+
 export const Card = ({
   title,
   subtitle,
@@ -39,6 +41,7 @@ export const Card = ({
     </>
   );
   const styles = `flex min-w-0 flex-col gap-4 rounded-panel border border-line bg-surface p-6 ${className}`;
+
   return href ? (
     <a
       href={href}

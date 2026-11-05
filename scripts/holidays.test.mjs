@@ -35,6 +35,7 @@ test("동시 요청과 같은 연도의 재조회는 중복 호출하지 않는�
   let finish;
   const store = createHolidayStore(() => {
     requests++;
+
     return new Promise((resolve) => { finish = resolve; });
   });
   const loading = store.getState().load(2026);
@@ -54,6 +55,7 @@ test("조회 실패 시 기본 공휴일을 유지하고 재시도하면 최신 
   let fail = true;
   const store = createHolidayStore(async () => {
     if (fail) throw new Error("offline");
+
     return Response.json([item(20261225, "성탄절"), item(20261104, "임시공휴일")]);
   });
 
@@ -86,6 +88,7 @@ test("연도를 빠르게 이동해도 늦게 도착한 응답이 다른 연도�
     if (url.endsWith("2026.json")) {
       return new Promise((resolve) => { finish2026 = resolve; });
     }
+
     return Response.json([item(20270101, "1월1일")]);
   });
   const first = store.getState().load(2026);

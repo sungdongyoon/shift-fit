@@ -51,12 +51,14 @@ npm run dev
 
 ```sh
 npm test
+npm run lint
+npm run check:duplicates
 npx tsc --noEmit
 npm run build
 ```
 
 `tsx`를 사용하므로 앱에서 사용 중인 Node.js에서도 테스트를 실행할 수 있습니다.
-기존 근무표 규칙 7개와 Zustand 격리·저장 형식 호환·Strict Mode·손상 데이터 보호·저장 재시도·실행 취소·편집 검증 등 9개를 합쳐 총 16개 검사를 포함합니다.
+근무표 규칙, Zustand 격리·저장 호환·Strict Mode·실행 취소, 공휴일, 로컬 런타임, 복사본 정리 안전성, 리팩토링 회귀 검사를 포함한 35개 테스트가 있습니다.
 
 ## macOS 바탕화면에서 실행
 
@@ -78,3 +80,23 @@ DDS 디자인 토큰을 사용하고 반복되는 패널 제목은 PanelHeading 
 한국천문연구원 특일 정보의 공개 미러 https://github.com/raki-1203/korean-holidays (MIT)를 사용합니다. lib/korean-holidays.json에는 2026-11-04 조회한 2025~2027년 기본 데이터가 들어 있습니다. hooks/use-holidays.ts와 stores/holiday-store.ts에서 연도별로 비동기 조회하고 24시간 메모리 캐시 및 중복 요청 방지를 적용합니다. 첫 렌더와 근무표 사용은 외부 조회를 기다리지 않습니다.
 
 조회 실패 시 기존/기본 데이터를 유지하고 안내와 재시도 버튼을 표시합니다. 미제공 연도는 안내하며 임의로 공휴일을 계산하지 않습니다. 새로 지정되는 임시공휴일 등은 원본 미러 갱신 이후 조회에 반영됩니다. scripts/holidays.test.mjs에서 명절·대체공휴일·중복·잘못된 날짜·요청 중복·오프라인 복구·연도 이동 경쟁을 검사합니다.
+
+## 코드를 수정할 때 찾을 위치
+
+| 수정할 내용 | 파일 |
+| --- | --- |
+| 세 패널의 전체 배치 | app/page.tsx |
+| 월 이동·공휴일 안내·빈 캘린더 안내 | components/planner/calendar-panel.tsx |
+| 요일 헤더·날짜 셀 배치 | components/planner/calendar-grid.tsx |
+| 날짜 색상·근무 이름표·추가 버튼 | components/planner/calendar-day.tsx |
+| 직원 검색·추가·목록 구분선 | components/planner/employee-list.tsx |
+| 직원 선택 테두리·이름·월별 횟수 | components/planner/employee-card.tsx |
+| 월간 날짜 생성·근무 정렬 | lib/calendar.ts |
+| 기본 휴무 횟수·일정 종류·집계·저장 검증 | lib/schedule.ts |
+| 종류별 저장·수정·삭제 규칙·예시 생성 | lib/schedule-commands.ts |
+| 편집 폼 상태·기존 배정 유지 상수·삭제 조건 | lib/editor.ts |
+| 공휴일 조회 제한 시간·캐시 유효 시간 | stores/holiday-store.ts |
+
+캘린더 배치용 useMonthCalendar와 직원별 집계용 useMonthSchedule을 구분합니다. 집계는 배정·직원·월이 바뀔 때 계산하고, 캘린더 배치에서는 계산하지 않습니다. 직원 카드는 자신의 선택 여부만 구독하며, 목록 검색은 한 번만 수행합니다. 예시 생성은 entries를 한 번 복사하고 새 배정의 타입 스냅샷을 보존합니다.
+
+코드의 줄 간격과 중첩 삼항 연산자는 ESLint에서 검사합니다. 타입·함수·다른 종류의 훅 사이 간격도 유지합니다. 공용 UI 크기·상태별 표현은 명시적인 매핑이나 조건 함수로 작성합니다. 구분선은 카드 사이의 일반 레이아웃으로 배치해 선택 테두리와 간격을 분리합니다.

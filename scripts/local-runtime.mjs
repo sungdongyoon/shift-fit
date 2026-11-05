@@ -6,11 +6,13 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 
 export const isDesktopProject = (projectRoot, home = homedir(), platform = process.platform) => {
   const location = relative(join(home, 'Desktop'), resolve(projectRoot));
+
   return platform === 'darwin' && location !== '..' && !location.startsWith('../') && !isAbsolute(location);
 };
 
 export const localRuntimePath = (projectRoot, home = homedir()) => {
   const id = createHash('sha256').update(resolve(projectRoot)).digest('hex').slice(0, 12);
+
   return join(home, 'Library', 'Caches', 'shiftfit', id);
 };
 
@@ -64,5 +66,6 @@ export const prepareLocalRuntime = async ({ projectRoot, runtimeRoot, install = 
   await mkdir(join(runtimeRoot, '.next'), { recursive: true });
   await linkGeneratedDirectory(projectRoot, runtimeRoot, 'node_modules');
   await linkGeneratedDirectory(projectRoot, runtimeRoot, '.next');
+
   return runtimeRoot;
 };

@@ -11,6 +11,7 @@ export const PlannerToast = () => {
   useEffect(() => {
     if (!toast || toast.undo) return;
     const timer = setTimeout(dismiss, 6000);
+
     return () => clearTimeout(timer);
   }, [toast, dismiss]);
 

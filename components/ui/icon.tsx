@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+
 export type IconName =
   | "search"
   | "check"
@@ -7,6 +8,7 @@ export type IconName =
   | "menu"
   | "plus"
   | "close";
+
 const sources: Record<IconName, string> = {
   search: "actions-imgFrame",
   check: "forms-imgFrame",
@@ -25,6 +27,7 @@ export const Icon = ({
   className?: string;
 }) => {
   const url = `url("/wds/${sources[name]}.svg")`;
+
   return (
     <span
       aria-hidden="true"

@@ -1,4 +1,5 @@
 "use client";
+
 export type PaginationProps = {
   page: number;
   totalPages: number;
@@ -6,6 +7,7 @@ export type PaginationProps = {
   label?: string;
   className?: string;
 };
+
 export const Pagination = ({
   page,
   totalPages,
@@ -27,6 +29,7 @@ export const Pagination = ({
   );
   const base =
     "inline-flex min-w-11 h-11 items-center justify-center rounded-control px-2 type-label disabled:text-content-disabled disabled:cursor-not-allowed";
+
   return (
     <nav
       aria-label={label}
