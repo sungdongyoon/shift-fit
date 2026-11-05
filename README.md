@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shiftfit
 
-## Getting Started
+스케줄 근무 업장을 위한 월간 근무표 웹 애플리케이션입니다. 근무 타입을 만들고 날짜별로 직원을 배정하면서, 직원별 근무·휴무 현황을 한 화면에서 확인할 수 있습니다.
 
-First, run the development server:
+현재 버전은 **0.1.0 · MVP**입니다. 월간 캘린더를 중심으로 동작하며, 근무표는 현재 브라우저에 자동 저장됩니다.
+
+## 주요 기능
+
+| 영역 | 기능 |
+| --- | --- |
+| 왼쪽 · 근무 타입 | 이름, 시작·종료 시간, 색상 등록 및 수정·삭제 |
+| 중앙 · 월간 캘린더 | 월 이동, 오늘로 이동, 날짜별 일정 배정·수정 |
+| 오른쪽 · 근무 설정 | 월 기준 휴무 횟수 설정, 직원별 횟수 확인 |
+| 오른쪽 · 근무자 목록 | 이름·고유 색상 등록, 검색, 정보 수정, 개인 일정 강조 |
+
+- **직원마다 하루 하나의 일정**: 근무·휴무·연차·기타 중 하나를 배정합니다. 새 직원은 등록 월부터 모든 날짜가 휴무로 시작하고, 배정을 삭제해도 휴무로 돌아갑니다.
+- **월별 휴무 확인**: 기본 기준은 직원당 월 8회이며, 월별로 변경할 수 있습니다. 휴무 횟수가 기준과 다르면 빨간색과 굵은 글씨로 표시합니다. 연차와 기타는 휴무 횟수에 포함하지 않습니다.
+- **읽기 쉬운 근무표**: 캘린더에는 직원 이름을 표시하고, 근무 타입의 색상으로 일정을 구분합니다. 근무는 시작 시간순으로, 같은 시간이면 이름순으로 정렬합니다. 근무 외 일정은 뒤에 표시합니다.
+- **기존 기록 보존**: 근무 타입을 수정·삭제해도 이미 배정한 일정의 이름·시간·색상은 유지됩니다. 종료 시간이 시작 시간보다 이르면 다음 날 종료로 표시합니다.
+- **직원 비활성화**: 이전 월부터 등록돼 있거나 실제 배정 기록이 있는 직원을 삭제하면 비활성화합니다. 선택한 월까지 표시하고 이후 월에는 숨깁니다. 이력이 없는 새 직원은 삭제합니다.
+- **대한민국 공휴일**: 공휴일 날짜와 이름을 빨간색으로 표시합니다. 대체공휴일과 데이터에 반영된 임시공휴일·선거일도 표시합니다.
+- **자동 저장과 실행 취소**: 변경 사항을 브라우저에 저장하고 마지막 데이터 변경을 실행 취소할 수 있습니다. 저장 상태와 실패 여부를 화면에서 확인할 수 있습니다.
+- **반응형 화면**: 작은 화면에서는 패널을 세로로 배치하고 캘린더를 가로로 스크롤할 수 있습니다. 터치 환경에서는 일정 추가 버튼을 항상 표시합니다.
+
+직원이 없는 초기 화면에서는 예시 근무표를 불러와 기능을 살펴볼 수 있습니다.
+
+## 시작하기
+
+Node.js와 npm이 필요합니다. 개발 환경은 Node.js 24를 기준으로 맞추는 것을 권장하며, 의존성은 `package-lock.json`을 사용해 설치합니다. 별도 환경 변수나 공휴일 API 키 설정은 필요하지 않습니다.
 
 ```bash
+git clone https://github.com/sungdongyoon/shift-fit.git shiftfit
+cd shiftfit
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000)에 접속합니다. 포트가 이미 사용 중이면 터미널에 표시된 주소를 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+배포용 빌드를 로컬에서 실행하려면 다음 명령어를 사용합니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+### macOS 바탕화면에서 개발하기
 
-To learn more about Next.js, take a look at the following resources:
+macOS의 `Desktop` 아래에 있는 프로젝트는 `npm run dev` 실행 시 로컬 런타임을 자동으로 준비합니다. 이 환경에서는 별도 `npm ci` 실행 없이 `npm run dev`로 시작할 수 있습니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 소스는 원래 프로젝트 위치에 유지합니다.
+- `node_modules`와 `.next`는 `~/Library/Caches/shiftfit/<프로젝트 경로 해시>`에 심볼릭 링크로 연결합니다.
+- 첫 실행 또는 `package.json`·`package-lock.json` 변경 시 캐시 경로에서 `npm ci`를 실행합니다.
+- 준비가 끝나면 Next.js 개발 서버를 시작합니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+의존성을 변경한 뒤에는 `npm run dev`를 실행해 캐시와 연결을 갱신한 다음 빌드합니다. 바탕화면 이외의 경로와 다른 운영체제에서는 일반적인 설치·실행 방식을 사용합니다. 이 스크립트가 소스 폴더의 iCloud 동기화 설정을 변경하지는 않습니다.
 
-## Deploy on Vercel
+## 사용 흐름
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. 오른쪽 근무자 목록의 `+` 버튼으로 직원 이름과 고유 색상을 등록합니다.
+2. 왼쪽에서 근무 타입의 이름, 시간, 색상을 설정합니다. 초기에는 오픈·미들·마감 타입이 제공됩니다.
+3. 오른쪽에서 현재 월의 기준 휴무 횟수를 입력합니다.
+4. 날짜 위에 마우스를 올리면 나타나는 `+` 버튼을 눌러 직원과 일정 종류를 선택합니다. 근무를 선택하면 근무 타입도 지정합니다.
+5. 캘린더의 이름표를 눌러 기존 배정을 수정합니다. 오른쪽 직원 이름을 누르면 해당 직원의 일정이 강조됩니다.
+6. 직원별 휴무 횟수를 확인하고, 기준과 다른 항목을 조정합니다. 변경 사항은 자동으로 저장됩니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 데이터 저장과 현재 범위
+
+근무표는 `shiftfit.schedule.v1` 키로 **현재 브라우저의 localStorage**에 저장합니다. 직원, 근무 타입, 날짜별 배정, 월별 휴무 기준을 저장하며, 검색어나 편집 중인 입력은 저장하지 않습니다.
+
+- 로그인, 서버 데이터베이스, 기기 간 동기화, 여러 사용자의 공동 편집은 구현하지 않았습니다.
+- 브라우저·접속 주소·포트가 달라지면 저장 공간도 달라집니다. 브라우저 사이트 데이터를 지우면 근무표도 삭제됩니다.
+- 저장 데이터를 복원할 수 없으면 원본을 덮어쓰지 않도록 자동 저장을 중단하고, 기존 데이터 내려받기를 제공합니다. 저장소 접근이 차단된 경우에는 내려받기도 실패할 수 있습니다.
+- 일반적인 데이터 가져오기·내보내기 기능은 아직 없습니다.
+- 직원 등록 시의 휴무 초기화와 예시 데이터는 실제 근무표 자동 편성 기능이 아닙니다. 근무 배정은 사용자가 직접 작성합니다.
+- 공휴일 표시는 근무·휴무 배정이나 월 휴무 기준을 자동으로 변경하지 않습니다.
+
+### 공휴일 데이터
+
+[한국천문연구원 특일 정보](https://www.data.go.kr/data/15012690/openapi.do)를 배포하는 [korean-holidays 공개 미러](https://github.com/raki-1203/korean-holidays)의 연도별 JSON을 브라우저에서 조회합니다. 외부 조회에 직원이나 근무표 데이터를 보내지 않습니다.
+
+- 기본 데이터: 2026-11-04에 조회한 2025~2027년 공휴일
+- 최신 데이터: 조회 성공 시 연도별로 메모리에 24시간 캐시
+- 조회 실패: 기존 조회 결과 또는 기본 데이터를 유지하고 재시도 안내 표시
+- 미제공 연도: 안내를 표시하며 공휴일 날짜를 임의로 계산하지 않음
+
+새로 지정되는 임시공휴일 등은 미러 데이터 갱신 이후 다음 조회에 반영됩니다.
+
+## 기술 구성
+
+| 구분 | 사용 기술 |
+| --- | --- |
+| 프레임워크 | Next.js 16.4.3 · App Router · Turbopack |
+| UI | React 19.3.0 · TypeScript · React Icons |
+| 스타일 | Tailwind CSS 4 · DDS 디자인 토큰 및 공용 컴포넌트 |
+| 상태 관리 | Zustand 5 · 편집 폼의 React reducer |
+| 저장 | 브라우저 localStorage |
+| 검사 | ESLint 9 · TypeScript · Node.js 테스트 러너 및 tsx |
+
+정확한 의존성 버전은 `package.json`과 `package-lock.json`에서 확인할 수 있습니다.
+
+## 프로젝트 구조
+
+```text
+app/                         페이지 배치, 메타데이터, 전역 스타일
+components/
+  planner/                   캘린더·근무자 카드·설정·편집 폼·알림
+  ui/                        DDS 기반 공용 UI 컴포넌트
+hooks/
+  use-month-schedule.ts       월간 날짜 배치·직원·근무 타입·횟수 집계
+  use-holidays.ts             공휴일 조회와 상태 구독
+lib/
+  schedule.ts                일정 타입·기본값·집계·저장 데이터 검증
+  schedule-commands.ts        등록·수정·삭제 규칙과 예시 근무표 생성
+  calendar.ts                월간 날짜 셀 생성과 근무 정렬
+  editor.ts                  편집 타입·폼 reducer·삭제 조건
+  holidays.ts                공휴일 파싱과 기본 데이터 연결
+  korean-holidays.json        기본 공휴일 데이터
+providers/                   화면별 Zustand 스토어 제공
+stores/                      근무표 상태·저장 연결·공휴일 캐시
+styles/                      DDS 디자인 토큰
+scripts/                     개발 런타임·복사본 검사·테스트
+```
+
+캘린더 배치와 직원별 집계는 별도 훅으로 분리합니다. 날짜 셀은 해당 날짜의 배정을 구독하고, 직원 카드는 자신의 선택 여부를 구독합니다. 저장은 실제 근무표 데이터가 변경될 때 수행합니다.
+
+## 검사 및 유지보수 명령어
+
+| 명령어 | 역할 |
+| --- | --- |
+| `npm run dev` | 개발 서버 실행 |
+| `npm run build` | 배포용 빌드 및 타입 검사 |
+| `npm run start` | 빌드된 애플리케이션 실행 |
+| `npm run lint` | 코드 규칙·줄 간격·중첩 삼항 연산자 검사 |
+| `npm test` | 전체 테스트 실행 |
+| `npx tsc --noEmit` | 별도 타입 검사 |
+| `npm run check:duplicates` | 번호가 붙은 소스 복사본 검사 |
+| `npm run clean:duplicates` | 대응하는 원본이 있는 번호 복사본 삭제 |
+
+개발 서버 시작과 빌드 전에 복사본 검사를 자동으로 실행합니다. `clean:duplicates`는 원본 유무를 기준으로 삭제하므로, 복사본에 필요한 수정 사항이 있는지 먼저 확인합니다.
+
+현재 35개 테스트에서 근무표 규칙, 저장 호환성, Strict Mode, 실행 취소, 공휴일, 월 경계·윤년, 예시 데이터 보존, 로컬 런타임, 복사본 정리 안전성을 확인합니다.
+
+기능별 수정 위치와 내부 구현 설명은 [IMPLEMENTATION.md](IMPLEMENTATION.md), 코드 작성 규칙은 [AGENTS.md](AGENTS.md)를 참고합니다.
