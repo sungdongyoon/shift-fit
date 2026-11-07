@@ -30,6 +30,7 @@ export type EmployeeScheduleSummary = Employee & { counts: AssignmentCounts; };
 export type Assignment = {
   category: Category;
   shift?: ShiftType;
+  memo?: string;
 };
 
 export type Schedule = {
@@ -202,7 +203,37 @@ const isValidAssignment = (value: unknown): value is Assignment => {
     return false;
   }
 
+  if (value.memo !== undefined && typeof value.memo !== "string") return false;
+
   return value.category !== "work" || isValidShiftType(value.shift);
+};
+
+// Active types are shared definitions; archived or missing types retain their saved details.
+export const syncAssignmentShiftTypes = (data: Schedule): Schedule => {
+  const activeTypes = new Map(
+    data.types.filter((type) => !type.archived).map((type) => [type.id, type]),
+  );
+  const entries = { ...data.entries };
+
+  for (const [key, assignment] of Object.entries(entries)) {
+    if (assignment.category !== "work" || !assignment.shift) continue;
+
+    const currentType = activeTypes.get(assignment.shift.id);
+
+    if (!currentType) continue;
+
+    const previousType = assignment.shift;
+    const hasChanges = previousType.name !== currentType.name ||
+      previousType.start !== currentType.start ||
+      previousType.end !== currentType.end ||
+      previousType.color !== currentType.color;
+
+    if (hasChanges) {
+      entries[key] = { ...assignment, shift: { ...currentType } };
+    }
+  }
+
+  return { ...data, entries };
 };
 
 export const readSaved = (raw: string): Schedule => {
@@ -235,5 +266,5 @@ export const readSaved = (raw: string): Schedule => {
     throw new Error("휴무 기준이 올바르지 않아요.");
   }
 
-  return saved as Schedule;
+  return syncAssignmentShiftTypes(saved as Schedule);
 };

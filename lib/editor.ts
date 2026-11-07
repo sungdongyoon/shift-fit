@@ -1,7 +1,5 @@
 import type { Category } from "./schedule";
 
-export const EXISTING_SHIFT_TYPE_ID = "__existing";
-
 export type AssignmentEditor = {
   kind: "assignment";
   date: string;
@@ -9,6 +7,7 @@ export type AssignmentEditor = {
   category: Category;
   typeId: string;
   original?: boolean;
+  memo?: string;
 };
 
 export type EmployeeEditor = {
@@ -51,14 +50,14 @@ export const editorFormReducer = (
 
 export const canRemoveEditor = (editor: Editor) => {
   if (editor.kind === "assignment") {
-    return Boolean(editor.original) && editor.category !== "off";
+    return false;
   }
 
   return Boolean(editor.id);
 };
 
 export const editorDeleteLabels: Record<Editor["kind"], string> = {
-  employee: "삭제 / 비활성화",
+  employee: "삭제",
   assignment: "삭제 → 휴무",
   type: "타입 삭제",
 };

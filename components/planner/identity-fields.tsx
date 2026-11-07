@@ -12,11 +12,11 @@ type IdentityFieldsProps = {
 
 const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
   if (editor.kind === "type") {
-    return "타입을 변경하거나 삭제해도 기존 일정의 시간과 색상은 유지돼요. 종료 시간이 이르면 다음 날 종료로 표시돼요.";
+    return "타입을 수정하면 기존 배정에도 반영돼요. 삭제하면 기존 배정은 유지되며, 종료 시간이 이르면 다음 날 종료로 표시돼요.";
   }
 
   if (editor.id) {
-    return "기존 배정이 있는 근무자는 비활성화되며, 이번 달까지의 기록은 유지돼요.";
+    return "삭제하면 근무자와 모든 월의 일정이 함께 삭제돼요. 삭제 직후 실행 취소로 되돌릴 수 있어요.";
   }
 
   return "현재 월부터 등록돼요. 모든 날짜를 휴무로 채워 이름이 빠지지 않아요.";

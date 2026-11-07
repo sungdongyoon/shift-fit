@@ -1,5 +1,4 @@
 import {
-  EXISTING_SHIFT_TYPE_ID,
   type AssignmentEditor,
   type Editor,
   type EmployeeEditor,
@@ -14,6 +13,7 @@ import {
   DEFAULT_OFF_TARGET,
   getAssignment,
   initial,
+  syncAssignmentShiftTypes,
   type Employee,
   type Schedule,
   type ShiftType,
@@ -60,9 +60,9 @@ const saveShiftType = (
 
   return {
     ok: true,
-    data: { ...data, types },
+    data: syncAssignmentShiftTypes({ ...data, types }),
     message: editor.id
-      ? "근무 타입을 수정했어요. 기존 배정은 유지돼요."
+      ? "근무 타입을 수정하고 기존 배정에도 반영했어요."
       : "새 근무 타입을 추가했어요.",
   };
 };
@@ -123,20 +123,23 @@ const saveAssignment = (
     return { ok: false, error: "배정할 근무자를 선택해 주세요." };
   }
 
-  // Preserve the snapshot until the user explicitly selects a replacement type.
-  const shift = editor.typeId === EXISTING_SHIFT_TYPE_ID
-    ? getAssignment(data, editor.date, editor.employee).shift
-    : data.types.find((type) => !type.archived && type.id === editor.typeId);
+  const currentShift = getAssignment(data, editor.date, editor.employee).shift;
+  const activeShift = data.types.find((type) => !type.archived && type.id === editor.typeId);
+  // Only this employee's existing assignment can retain a deleted type.
+  const shift = activeShift ?? (currentShift?.id === editor.typeId ? currentShift : undefined);
 
   if (editor.category === "work" && !shift) {
     return { ok: false, error: "근무 타입을 선택해 주세요." };
   }
+
+  const memo = editor.memo?.replace(/\s+/g, " ").trim();
 
   return {
     ok: true,
     data: assign(data, editor.date, editor.employee, {
       category: editor.category,
       ...(editor.category === "work" ? { shift } : {}),
+      ...(editor.category === "other" && memo ? { memo } : {}),
     }),
     message: "배정을 저장했어요.",
   };
@@ -160,7 +163,6 @@ export const saveScheduleEditor = (
 
 export const removeScheduleEditor = (
   data: Schedule,
-  month: string,
   editor: Editor,
 ) => {
   if (editor.kind === "assignment") {
@@ -182,20 +184,14 @@ export const removeScheduleEditor = (
     };
   }
 
-  const employee = data.employees.find((item) => item.id === editor.id);
-  const hasRecords = Boolean(employee && employee.from < month) ||
-    Object.keys(data.entries).some((key) => key.endsWith(`:${editor.id}`));
-  const employees = hasRecords
-    ? data.employees.map((item) =>
-      item.id === editor.id ? { ...item, until: month } : item,
-    )
-    : data.employees.filter((item) => item.id !== editor.id);
+  const employees = data.employees.filter((employee) => employee.id !== editor.id);
+  const entries = Object.fromEntries(
+    Object.entries(data.entries).filter(([key]) => !key.endsWith(`:${editor.id}`)),
+  );
 
   return {
-    data: { ...data, employees },
-    message: hasRecords
-      ? "근무자를 비활성화했어요. 이번 달까지의 기록은 유지돼요."
-      : "근무자를 삭제했어요.",
+    data: { ...data, employees, entries },
+    message: "근무자와 연결된 일정을 삭제했어요.",
   };
 };
 

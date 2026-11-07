@@ -23,7 +23,7 @@ test('배정 삭제는 휴무로 돌아가며 직원의 하루가 사라지지 �
   assert.equal(getAssignment(data, '2026-10-02', employee.id).category, 'off');
   assert.equal(counts(data, '2026-10', employee.id).off, 31);
 });
-test('근무 타입 변경과 삭제가 배정 당시 이름·시간·색상을 바꾸지 않는다', () => {
+test('배정은 타입 객체의 외부 직접 변경으로부터 복사본을 보호한다', () => {
   const data = base();
   const original = structuredClone(data.types[0]);
   const assigned = assign(data, '2026-10-01', employee.id, { category: 'work', shift: data.types[0] });

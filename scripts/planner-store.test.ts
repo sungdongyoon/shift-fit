@@ -6,7 +6,7 @@ import {
   STORAGE_KEY,
   type PlannerStorage,
 } from "../stores/planner-storage";
-import { counts, getAssignment, initial } from "../lib/schedule";
+import { counts, getAssignment, initial, readSaved } from "../lib/schedule";
 import { createExampleSchedule } from "../lib/schedule-commands";
 import { editorFormReducer } from "../lib/editor";
 
@@ -157,7 +157,7 @@ test("저장 검증 실패 시 편집을 유지하고 성공·실행 취소는 �
   stop();
 });
 
-test("스토어를 통한 타입 수정·삭제 후에도 기존 배정 스냅샷을 다시 저장할 수 있다", () => {
+test("타입 수정은 기존 배정에 반영되고 삭제 후에도 마지막 배정을 다시 저장할 수 있다", () => {
   const store = createPlannerStore();
   const memory = makeStorage();
   const stop = connectPlannerStorage(store, () => memory.storage, NOW);
@@ -181,7 +181,17 @@ test("스토어를 통한 타입 수정·삭제 후에도 기존 배정 스냅�
   store
     .getState()
     .saveEditor({ kind: "type", ...type, start: "07:00", color: "#000000" });
+  store.getState().undoLastChange();
+  assert.deepEqual(getAssignment(store.getState().data, "2026-10-01", employee), original);
+  store.getState().saveEditor({ kind: "type", ...type, start: "07:00", color: "#000000" });
   store.getState().removeEditor({ kind: "type", ...type });
+  store.getState().editAssignment("2026-10-01", employee);
+  const assignmentEditor = store.getState().editor;
+  assert.equal(assignmentEditor?.kind, "assignment");
+
+  if (assignmentEditor?.kind !== "assignment") throw new Error("일정 편집기가 열리지 않았습니다.");
+
+  assert.equal(assignmentEditor.typeId, type.id);
   assert.equal(
     store
       .getState()
@@ -190,13 +200,13 @@ test("스토어를 통한 타입 수정·삭제 후에도 기존 배정 스냅�
         date: "2026-10-01",
         employee,
         category: "work",
-        typeId: "__existing",
+        typeId: type.id,
       }),
     null,
   );
   assert.deepEqual(
     getAssignment(store.getState().data, "2026-10-01", employee),
-    original,
+    { ...original, shift: { ...type, start: "07:00", color: "#000000" } },
   );
   store
     .getState()
@@ -205,7 +215,7 @@ test("스토어를 통한 타입 수정·삭제 후에도 기존 배정 스냅�
       date: "2026-10-01",
       employee,
       category: "work",
-      typeId: "__existing",
+      typeId: type.id,
     });
   assert.equal(
     getAssignment(store.getState().data, "2026-10-01", employee).category,
@@ -250,4 +260,64 @@ test("폼 입력은 오류와 함께 하나의 reducer로 관리하고 변경 �
   assert.equal(next.error, "");
   assert.equal(next.draft.kind === "employee" && next.draft.name, "김지우");
   assert.equal(invalid.error, "이름 필요");
+});
+
+test("기타 메모는 저장·복원·재편집되고 휴무로 저장하면 제거된다", () => {
+  const store = createPlannerStore();
+  const memory = makeStorage();
+  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
+  store.getState().saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" });
+  const employee = store.getState().data.employees[0];
+  const date = "2026-10-01";
+  const draft = {
+    kind: "assignment" as const,
+    date,
+    employee: employee.id,
+    category: "other" as const,
+    typeId: "",
+    memo: "  외부 지원\n교육  ",
+  };
+
+  assert.equal(store.getState().saveEditor(draft), null);
+  const restored = readSaved(memory.read()!);
+  assert.equal(getAssignment(restored, date, employee.id).memo, "외부 지원 교육");
+  store.getState().editAssignment(date, employee.id);
+  const editor = store.getState().editor;
+  assert.equal(editor?.kind, "assignment");
+
+  if (editor?.kind !== "assignment") throw new Error("일정 편집기가 열리지 않았습니다.");
+
+  assert.equal(editor.memo, "외부 지원 교육");
+  assert.equal(store.getState().saveEditor({ ...editor, category: "off" }), null);
+  assert.deepEqual(getAssignment(store.getState().data, date, employee.id), { category: "off" });
+  stop();
+});
+
+test("기록이 있는 직원도 모든 월에서 삭제하고 실행 취소로 함께 복원한다", () => {
+  const employee = { id: "removed", name: "김지우", color: "#5686D6", from: "2026-01" };
+  const retained = { ...employee, id: "retained", name: "이도윤" };
+  const saved = {
+    ...structuredClone(initial),
+    employees: [employee, retained],
+    entries: {
+      "2026-09-04:removed": { category: "work", shift: initial.types[0] },
+      "2026-10-04:removed": { category: "other", memo: "교육" },
+      "2026-11-04:removed": { category: "leave" },
+      "2026-10-04:retained": { category: "work", shift: initial.types[1] },
+    },
+  };
+  const memory = makeStorage(JSON.stringify(saved));
+  const store = createPlannerStore();
+  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
+  store.getState().selectEmployee(employee.id);
+  store.getState().removeEditor({ kind: "employee", ...employee });
+
+  assert.deepEqual(store.getState().data.employees, [retained]);
+  assert.deepEqual(Object.keys(store.getState().data.entries), ["2026-10-04:retained"]);
+  assert.equal(store.getState().view.selected, "");
+  assert.deepEqual(readSaved(memory.read()!).employees, [retained]);
+  store.getState().undoLastChange();
+  assert.deepEqual(store.getState().data, saved);
+  assert.deepEqual(readSaved(memory.read()!), saved);
+  stop();
 });

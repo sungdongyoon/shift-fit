@@ -1,5 +1,5 @@
 import { createStore } from "zustand/vanilla";
-import { EXISTING_SHIFT_TYPE_ID, type Editor } from "../lib/editor";
+import type { Editor } from "../lib/editor";
 import {
   createExampleSchedule,
   removeScheduleEditor,
@@ -109,9 +109,9 @@ export const createPlannerStore = () =>
           date,
           employee,
           category: assignment.category,
-          typeId: assignment.shift
-            ? EXISTING_SHIFT_TYPE_ID
-            : (data.types.find((type) => !type.archived)?.id ?? ""),
+          memo: assignment.memo ?? "",
+          typeId: assignment.shift?.id ??
+            data.types.find((type) => !type.archived)?.id ?? "",
           original: true,
         });
       },
@@ -125,7 +125,7 @@ export const createPlannerStore = () =>
       },
       removeEditor: (editor) => {
         const { data, view } = get();
-        const result = removeScheduleEditor(data, view.month, editor);
+        const result = removeScheduleEditor(data, editor);
         commit(result.data, result.message, {
           editor: null,
           ...(editor.kind === "employee"

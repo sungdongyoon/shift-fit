@@ -1,7 +1,9 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { TextField } from "@/components/ui/text-field";
 import { useMonthEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
-import { EXISTING_SHIFT_TYPE_ID, type AssignmentEditor, type Editor } from "@/lib/editor";
+import type { AssignmentEditor, Editor } from "@/lib/editor";
 import { categories, getAssignment, labels } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
@@ -20,6 +22,13 @@ export const AssignmentFields = ({
 
   const entries = usePlannerStore((state) => state.data.entries);
   const existing = getAssignment({ entries }, editor.date, editor.employee);
+  const assignedShift = existing.shift;
+  const hasDeletedShift = Boolean(
+    assignedShift && !types.some((type) => type.id === assignedShift.id),
+  );
+  const selectableTypes = hasDeletedShift && assignedShift
+    ? [...types, assignedShift]
+    : types;
 
   return (
     <>
@@ -29,23 +38,21 @@ export const AssignmentFields = ({
           하루에 한 사람당 하나의 일정을 배정해요.
         </span>
       </div>
-      <label className="flex flex-col gap-2 text-[13px] font-medium">
-        근무자
-        <select
-          disabled={editor.original}
+      {editor.original ? (
+        <div className="flex flex-col gap-2 text-[13px] font-medium">
+          <span>근무자</span>
+          <p className="text-sm/normal text-content">
+            {employees.find((employee) => employee.id === editor.employee)?.name}
+          </p>
+        </div>
+      ) : (
+        <Select
+          label="근무자"
           value={editor.employee}
-          onChange={(event) =>
-            onChange({ ...editor, employee: event.target.value })
-          }
-          className="w-full rounded-control border border-line-input bg-surface p-3 text-sm/normal text-content"
-        >
-          {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          onChange={(event) => onChange({ ...editor, employee: event.target.value })}
+          options={employees.map((employee) => ({ value: employee.id, label: employee.name }))}
+        />
+      )}
       <div
         className="grid grid-cols-4 gap-[3px] rounded-[9px] bg-canvas-subtle p-1"
         role="group"
@@ -64,37 +71,28 @@ export const AssignmentFields = ({
         ))}
       </div>
       {editor.category === "work" && (
-        <label className="flex flex-col gap-2 text-[13px] font-medium">
-          근무 타입
-          <select
-            required
-            value={editor.typeId}
-            onChange={(event) =>
-              onChange({ ...editor, typeId: event.target.value })
-            }
-            className="w-full rounded-control border border-line-input bg-surface p-3 text-sm/normal text-content"
-          >
-            <option value="" disabled>
-              근무 타입 선택
-            </option>
-            {editor.typeId === EXISTING_SHIFT_TYPE_ID && (
-              <option value={EXISTING_SHIFT_TYPE_ID}>
-                {existing.shift?.name} · 기존 배정 유지
-              </option>
-            )}
-            {types.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name} · {type.start} ~ {type.end}
-                {type.end < type.start ? " (다음 날)" : ""}
-              </option>
-            ))}
-          </select>
-          {!types.length && editor.typeId !== EXISTING_SHIFT_TYPE_ID && (
-            <small className="text-[11px] text-danger">
-              먼저 왼쪽에서 근무 타입을 추가해 주세요.
-            </small>
-          )}
-        </label>
+        <Select
+          label="근무 타입"
+          required
+          placeholder="근무 타입 선택"
+          value={editor.typeId}
+          onChange={(event) => onChange({ ...editor, typeId: event.target.value })}
+          options={selectableTypes.map((type) => ({
+            value: type.id,
+            label: `${type.name} · ${type.start} ~ ${type.end}${type.end < type.start ? " (다음 날)" : ""}${hasDeletedShift && type.id === assignedShift?.id ? " (삭제된 타입)" : ""}`,
+          }))}
+          error={!selectableTypes.length
+            ? "먼저 왼쪽에서 근무 타입을 추가해 주세요."
+            : undefined}
+        />
+      )}
+      {editor.category === "other" && (
+        <TextField
+          label="기타 메모"
+          placeholder="예: 교육, 외부 지원"
+          value={editor.memo ?? ""}
+          onChange={(event) => onChange({ ...editor, memo: event.target.value })}
+        />
       )}
       <p className="rounded-control bg-canvas-subtle p-3 text-[11px] leading-[1.9] text-content-tertiary">
         {existing.category === "off"

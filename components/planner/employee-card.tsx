@@ -37,11 +37,6 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
           <strong className="text-xs/normal font-semibold [overflow-wrap:anywhere]">
             {employee.name}
           </strong>
-          {employee.until && (
-            <small className="text-[9px] text-content-tertiary">
-              비활성
-            </small>
-          )}
         </button>
         <button
           className="ml-auto h-[26px] w-6 border-0 bg-transparent text-xl/normal text-content-tertiary"
