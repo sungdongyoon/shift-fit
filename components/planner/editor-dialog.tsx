@@ -32,8 +32,35 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
 
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (initial.kind === "type" && draft.kind === "type" && initial.id) {
+      const hasChanges = initial.name.trim() !== draft.name.trim() ||
+        initial.start !== draft.start || initial.end !== draft.end ||
+        initial.color !== draft.color;
+
+      if (hasChanges && !window.confirm(
+        `‘${initial.name}’ 근무 타입을 변경하면 다른 월을 포함해 이미 배정된 모든 일정의 이름·시간·색상에도 반영됩니다. 변경할까요?`,
+      )) return;
+    }
+
     const message = saveEditor(draft);
     if (message) dispatch({ type: "error", message });
+  };
+
+  const remove = () => {
+    if (!canRemoveEditor(draft)) return;
+
+    let message = "";
+
+    if (initial.kind === "employee") {
+      message = `‘${initial.name}’ 근무자를 삭제하면 다른 월을 포함한 모든 일정과 근무자 명단에서 해당 근무자의 정보가 삭제됩니다. 삭제할까요?`;
+    }
+
+    if (initial.kind === "type") {
+      message = `‘${initial.name}’ 근무 타입을 삭제하면 다른 월에서도 새 일정 배정에 사용할 수 없습니다. 이미 배정된 일정은 마지막 이름·시간·색상으로 유지됩니다. 삭제할까요?`;
+    }
+
+    if (message && window.confirm(message)) removeEditor(draft);
   };
 
   const canRemove = canRemoveEditor(draft);
@@ -58,7 +85,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
           <button
             type="button"
             className="mr-auto border-0 bg-transparent text-[11px] text-danger max-[640px]:text-[10px]"
-            onClick={() => removeEditor(draft)}
+            onClick={remove}
           >
             {editorDeleteLabels[draft.kind]}
           </button>
