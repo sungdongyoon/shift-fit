@@ -127,6 +127,9 @@ const PdfCalendar = ({ data, calendar }: {
                     ]}
                   >
                     {employee.name}
+                    {assignment.category === "other" && assignment.memo
+                      ? ` · ${assignment.memo.replace(/\s+/g, " ").trim()}`
+                      : ""}
                   </Text>
                 </View>
               ))}

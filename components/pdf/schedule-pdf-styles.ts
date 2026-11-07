@@ -109,6 +109,8 @@ export const pdfStyles = StyleSheet.create({
     lineHeight: 1.1,
     borderWidth: 0,
     textDecoration: "none",
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
   tableHeader: {
     flexDirection: "row",

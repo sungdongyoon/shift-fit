@@ -60,7 +60,7 @@ export const buildSchedulePdfData = (data: Schedule, month: string, holidays: Ho
     shiftTypes.set(shiftKey(shift), shift);
   });
 
-  // Archived/edited types may still be used by an existing assignment snapshot.
+  // Archived types remain in the legend while they are used by saved assignments.
   calendars.forEach((calendar) => calendar.weeks.flat().forEach((day) => {
     day.rows.forEach(({ assignment }) => {
       if (assignment.category === "work" && assignment.shift) {
