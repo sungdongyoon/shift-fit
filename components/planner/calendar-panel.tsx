@@ -5,6 +5,7 @@ import { useHolidays } from "@/hooks/use-holidays";
 import { useMonthCalendar } from "@/hooks/use-month-schedule";
 import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { PdfExportButton } from "./pdf-export-button";
 import { CalendarGrid } from "./calendar-grid";
 import { Glyph } from "./glyph";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
@@ -40,7 +41,7 @@ export const CalendarPanel = () => {
       aria-label="월간 근무 캘린더"
       aria-busy={!ready}
     >
-      <div className="flex items-center justify-between gap-2.5 px-[22px] pt-[23px] pb-[17px] max-[1200px]:px-3.5 max-[1200px]:pt-5 max-[1200px]:pb-3.5 max-[640px]:pt-[18px] max-[640px]:pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-[22px] pt-[23px] pb-[17px] max-[1200px]:px-3.5 max-[1200px]:pt-5 max-[1200px]:pb-3.5 max-[640px]:pt-[18px] max-[640px]:pb-3">
         <div className="flex items-center gap-3.5 max-[1200px]:gap-2">
           <h2 className="text-xl/normal font-bold tracking-[-0.7px] max-[1200px]:text-[17px]">
             {month ? `${year}년 ${monthNumber}월` : "캘린더"}
@@ -71,10 +72,7 @@ export const CalendarPanel = () => {
             오늘
           </button>
         </div>
-        {/* <span className="flex items-center gap-1.5 rounded-md border border-line px-[9px] py-[7px] text-[10px] text-content-secondary max-[1200px]:hidden max-[640px]:flex max-[640px]:text-[9px]">
-          <Glyph name="calendar" className="size-[13px]" />
-          월간 보기
-        </span> */}
+        <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
       </div>
       {showHolidayNotice && (
         <div
