@@ -1,16 +1,17 @@
 "use client";
 
 import { PanelHeading } from "./panel-heading";
-import { useShiftTypes } from "@/hooks/use-month-schedule";
+import { useShiftTypes, useReadOnlySchedule } from "@/hooks/use-month-schedule";
 import { assignmentColor, colors, getMonthShiftTypes, labels, type Category } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { previousMonthKey } from "@/lib/schedule-commands";
-import { Glyph } from "./glyph";
+import { SavedScheduleList } from "./saved-schedule-list";
 import { tint } from "./presentation";
 import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 
 export const ShiftTypeSidebar = () => {
   const types = useShiftTypes();
+  const readOnly = useReadOnlySchedule();
 
   const open = usePlannerStore((state) => state.openEditor);
   const copyTypes = usePlannerStore((state) => state.copyPreviousMonthTypes);
@@ -35,20 +36,20 @@ export const ShiftTypeSidebar = () => {
     >
       <PanelHeading title="근무 타입" count={types.length} />
       <p className="mt-[9px] text-[10px] leading-[1.6] text-content-tertiary">
-        이 달의 근무 타입만 변경돼요.
+        {readOnly ? "저장 당시의 근무 타입이에요." : "이 달의 근무 타입만 변경돼요."}
       </p>
       <div className="mt-3 mb-[19px] flex flex-col gap-2">
         <button
           className="min-h-9 w-full rounded-[7px] border border-line bg-canvas px-2 py-2 text-[11px] text-content-secondary enabled:hover:bg-canvas-subtle disabled:cursor-not-allowed disabled:opacity-50"
           onClick={copyTypes}
-          disabled={!month || !canCopy}
+          disabled={readOnly || !month || !canCopy}
         >
           이전 월 근무타입 복사하기
         </button>
         <button
           className="min-h-9 w-full rounded-[7px] border border-dashed border-line bg-transparent px-2 py-2 text-[11px] text-content-secondary hover:bg-canvas-subtle disabled:opacity-50"
           onClick={addShiftType}
-          disabled={!month}
+          disabled={readOnly || !month}
         >
           새로운 근무 타입 추가
         </button>
@@ -62,7 +63,8 @@ export const ShiftTypeSidebar = () => {
         {types.map((type) => (
           <button
             key={type.id}
-            className="group/type relative flex w-full items-center gap-2.5 rounded-control border border-line bg-canvas px-2.5 py-[13px] text-left hover:border-[var(--shift-color)] hover:bg-[var(--shift-bg)] max-[1200px]:gap-[7px] max-[1200px]:px-2 max-[1200px]:py-3 max-[640px]:w-auto max-[640px]:min-w-[135px] max-[640px]:shrink-0"
+            disabled={readOnly}
+            className="group/type relative flex disabled:cursor-default disabled:opacity-100 w-full items-center gap-2.5 rounded-control border border-line bg-canvas px-2.5 py-[13px] text-left hover:border-[var(--shift-color)] hover:bg-[var(--shift-bg)] max-[1200px]:gap-[7px] max-[1200px]:px-2 max-[1200px]:py-3 max-[640px]:w-auto max-[640px]:min-w-[135px] max-[640px]:shrink-0"
             style={tint(type.color)}
             onClick={() => open({ kind: "type", ...type })}
           >
@@ -97,20 +99,7 @@ export const ShiftTypeSidebar = () => {
           </div>
         ))}
       </div>
-      <div className="rounded-control bg-canvas-subtle px-3 py-4 max-[640px]:hidden">
-        <Glyph name="calendar" className="mb-[11px] text-content-tertiary" />
-        <strong className="block text-[11px]">근무표 작성 방법</strong>
-        <p className="mt-2 text-[10px] leading-[1.8] text-content-tertiary">
-          날짜 위의 + 버튼으로
-          <br />
-          근무를 배정해 보세요.
-        </p>
-        <p className="mt-2 text-[10px] leading-[1.8] text-content-tertiary">
-          이름을 누르면 언제든
-          <br />
-          일정을 수정할 수 있어요.
-        </p>
-      </div>
+      <SavedScheduleList />
     </aside>
   );
 };

@@ -1,5 +1,7 @@
 "use client";
 
+import { useReadOnlySchedule } from "@/hooks/use-month-schedule";
+import { displayedSchedule } from "@/stores/planner-store";
 import { memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -35,6 +37,8 @@ const dateAppearance = (isToday: boolean, isRedDay: boolean, column: number) => 
 
 export const CalendarDay = memo(
   ({ date, day, column, holiday, employees }: CalendarDayProps) => {
+    const readOnly = useReadOnlySchedule();
+
     const today = usePlannerStore((state) => state.view.today);
     const selected = usePlannerStore((state) => state.view.selected);
     const addAssignment = usePlannerStore((state) => state.addAssignment);
@@ -44,7 +48,7 @@ export const CalendarDay = memo(
       useShallow((state) =>
         employees.map(
           (employee) =>
-            state.data.entries[`${date}:${employee.id}`] ?? defaultAssignment(employee, date),
+            displayedSchedule(state).entries[`${date}:${employee.id}`] ?? defaultAssignment(employee, date),
         ),
       ),
     );
@@ -85,24 +89,27 @@ export const CalendarDay = memo(
               {holiday}
             </span>
           )}
-          <button
-            className="ml-auto size-[22px] flex justify-center items-center shrink-0 rounded-[5px] border-0 bg-surface-hover text-lg/normal text-content-secondary opacity-0 group-hover/day:opacity-100 group-focus-within/day:opacity-100 focus-visible:opacity-100 hover:bg-brand-subtle hover:text-brand-content max-[640px]:opacity-100 [@media(hover:none)]:opacity-100"
-            aria-label={`${monthNumber}월 ${day}일 근무 추가`}
-            onClick={() => addAssignment(date)}
-          >
-            <FaPlus className="size-3" />
-          </button>
+          {!readOnly && (
+            <button
+              className="ml-auto size-[22px] flex justify-center items-center shrink-0 rounded-[5px] border-0 bg-surface-hover text-lg/normal text-content-secondary opacity-0 group-hover/day:opacity-100 group-focus-within/day:opacity-100 focus-visible:opacity-100 hover:bg-brand-subtle hover:text-brand-content max-[640px]:opacity-100 [@media(hover:none)]:opacity-100"
+              aria-label={`${monthNumber}월 ${day}일 근무 추가`}
+              onClick={() => addAssignment(date)}
+            >
+              <FaPlus className="size-3" />
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-1">
           {rows.map(({ employee, assignment }) => (
             <button
               key={employee.id}
-              className="min-h-6 w-full overflow-hidden rounded-[3px] border-0 border-l-[3px] border-l-[var(--shift-color)] bg-[var(--shift-bg)] px-1.5 py-[5px] text-left text-[10px] leading-[1.3] font-medium text-ellipsis whitespace-nowrap text-content hover:shadow-[0_0_0_1px_var(--shift-color)] data-[dimmed=true]:opacity-20 data-[highlighted=true]:font-bold data-[highlighted=true]:shadow-[0_0_0_1px_var(--shift-color)] min-[1600px]:px-2 min-[1600px]:py-1.5 min-[1600px]:text-xs/normal"
+              disabled={readOnly}
+              className="min-h-6 w-full overflow-hidden rounded-[3px] border-0 border-l-[3px] border-l-[var(--shift-color)] bg-[var(--shift-bg)] px-1.5 py-[5px] text-left text-[10px] leading-[1.3] font-medium text-ellipsis whitespace-nowrap text-content disabled:cursor-default disabled:opacity-100 hover:shadow-[0_0_0_1px_var(--shift-color)] data-[dimmed=true]:opacity-20 data-[highlighted=true]:font-bold data-[highlighted=true]:shadow-[0_0_0_1px_var(--shift-color)] min-[1600px]:px-2 min-[1600px]:py-1.5 min-[1600px]:text-xs/normal"
               data-dimmed={!!selected && selected !== employee.id}
               data-highlighted={selected === employee.id}
               style={tint(assignmentColor(assignment))}
               title={`${employee.name} · ${labels[assignment.category]}${assignment.shift ? ` · ${assignment.shift.name} ${assignment.shift.start}–${assignment.shift.end}` : ""}`}
-              aria-label={`${monthNumber}월 ${day}일 ${employee.name} ${labels[assignment.category]} 수정`}
+              aria-label={`${monthNumber}월 ${day}일 ${employee.name} ${labels[assignment.category]} ${readOnly ? "읽기 전용" : "수정"}`}
               onClick={() => editAssignment(date, employee.id)}
             >
               {employee.name}{assignment.category === "unassigned" ? " · 미배정" : ""}

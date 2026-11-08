@@ -1,4 +1,6 @@
 import { createStore } from "zustand/vanilla";
+import { createSavedMonth } from "../lib/saved-schedules";
+import type { HolidayMap } from "../lib/holidays";
 import type { Editor } from "../lib/editor";
 import {
   createExampleSchedule,
@@ -14,6 +16,7 @@ import {
   initial,
   monthKey,
   type Schedule,
+  type SavedMonth,
 } from "../lib/schedule";
 
 type ViewState = {
@@ -35,9 +38,14 @@ export type PlannerState = {
   editor: Editor | null;
   toast: ToastState;
   storageStatus: StorageStatus;
+  selectedSavedMonth: SavedMonth | null;
 };
 
 type PlannerActions = {
+  saveMonth: (holidays: HolidayMap) => void;
+  deleteSavedMonth: (id: string) => void;
+  showSavedMonth: (id: string) => void;
+  showWorkingMonth: () => void;
   openEditor: (editor: Editor) => void;
   closeEditor: () => void;
   addAssignment: (date: string) => void;
@@ -57,6 +65,9 @@ type PlannerActions = {
 };
 
 export type PlannerStore = PlannerState & PlannerActions;
+
+export const displayedSchedule = (state: PlannerState): Schedule =>
+  state.selectedSavedMonth?.data ?? state.data;
 
 // Created by the provider, never shared between server requests or workspaces.
 export const createPlannerStore = () =>
@@ -79,11 +90,69 @@ export const createPlannerStore = () =>
       editor: null,
       toast: null,
       storageStatus: "loading",
+      selectedSavedMonth: null,
+      saveMonth: (holidays) => {
+        const { data, view, storageStatus, selectedSavedMonth, notify } = get();
+
+        if (selectedSavedMonth || storageStatus === "loading" || storageStatus === "blocked") return;
+
+        try {
+          const record = createSavedMonth(data, view.month, holidays);
+          set({ data: { ...data, savedMonths: [...(data.savedMonths ?? []), record] } });
+
+          if (get().storageStatus !== "saved") {
+            set({ data, toast: { message: "저장 공간을 확인해 주세요. 저장 기록을 보관하지 못했어요." } });
+
+            return;
+          }
+
+          set({ toast: { message: `${Number(view.month.slice(5))}월 v${record.version}을 저장했어요.` } });
+        } catch {
+          notify("근무표를 저장하지 못했어요. 저장할 월과 근무자를 확인해 주세요.");
+        }
+      },
+      deleteSavedMonth: (id) => {
+        const { data, storageStatus, selectedSavedMonth, showWorkingMonth } = get();
+        const record = data.savedMonths?.find((item) => item.id === id);
+
+        if (!record || storageStatus === "loading" || storageStatus === "blocked") return;
+
+        set({ data: { ...data, savedMonths: data.savedMonths!.filter((item) => item.id !== id) } });
+
+        if (get().storageStatus !== "saved") {
+          set({ data, toast: { message: "저장 기록을 삭제하지 못했어요. 브라우저 저장 공간을 확인해 주세요." } });
+
+          return;
+        }
+
+        if (selectedSavedMonth?.id === id) showWorkingMonth();
+
+        set({ toast: { message: `${Number(record.month.slice(5))}월 v${record.version}을 삭제했어요.` } });
+      },
+      showSavedMonth: (id) => {
+        const record = get().data.savedMonths?.find((item) => item.id === id);
+
+        if (!record) return;
+
+        set((state) => ({
+          selectedSavedMonth: record,
+          view: { ...state.view, month: record.month, selected: "" },
+          editor: null,
+          toast: null,
+        }));
+      },
+      showWorkingMonth: () => set((state) => ({
+        selectedSavedMonth: null,
+        view: { ...state.view, selected: "" },
+        editor: null,
+      })),
       openEditor: (editor) => {
-        if (get().storageStatus !== "loading") set({ editor });
+        if (!get().selectedSavedMonth && get().storageStatus !== "loading") set({ editor });
       },
       closeEditor: () => set({ editor: null }),
       addAssignment: (date) => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view, notify, openEditor } = get();
         const employees = data.employees;
         if (!employees.length) {
@@ -104,6 +173,8 @@ export const createPlannerStore = () =>
         });
       },
       editAssignment: (date, employee) => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view, openEditor } = get();
         const assignment = getAssignment(data, date, employee);
         openEditor({
@@ -118,6 +189,8 @@ export const createPlannerStore = () =>
         });
       },
       saveEditor: (editor) => {
+        if (get().selectedSavedMonth) return "저장본은 읽기 전용이에요.";
+
         const { data, view } = get();
         const result = saveScheduleEditor(data, view.month, editor);
         if (!result.ok) return result.error;
@@ -126,6 +199,8 @@ export const createPlannerStore = () =>
         return null;
       },
       removeEditor: (editor) => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view } = get();
         const result = removeScheduleEditor(data, view.month, editor);
         commit(result.data, result.message, {
@@ -141,6 +216,8 @@ export const createPlannerStore = () =>
         const [year, month] = view.month.split("-").map(Number);
         const date = new Date(year, month - 1 + delta, 1);
         set({
+          selectedSavedMonth: null,
+          editor: null,
           view: {
             ...view,
             month: monthKey(date.getFullYear(), date.getMonth()),
@@ -150,6 +227,8 @@ export const createPlannerStore = () =>
       },
       goToToday: () =>
         set((state) => ({
+          selectedSavedMonth: null,
+          editor: null,
           view: {
             ...state.view,
             month: state.view.today.slice(0, 7),
@@ -166,6 +245,8 @@ export const createPlannerStore = () =>
       clearSelection: () =>
         set((state) => ({ view: { ...state.view, selected: "" } })),
       setOffTarget: (target) => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view } = get();
         if (
           !view.month ||
@@ -183,6 +264,8 @@ export const createPlannerStore = () =>
         );
       },
       copyPreviousMonthTypes: () => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view, notify } = get();
 
         if (!view.month) return;
@@ -198,6 +281,8 @@ export const createPlannerStore = () =>
         commit(result.data, result.message);
       },
       loadExample: () => {
+        if (get().selectedSavedMonth) return;
+
         const { data, view } = get();
         if (!view.month || data.employees.length) return;
         commit(
@@ -209,6 +294,8 @@ export const createPlannerStore = () =>
         set((state) => ({ toast: { ...state.toast, message } })),
       dismissToast: () => set({ toast: null }),
       undoLastChange: () => {
+        if (get().selectedSavedMonth) return;
+
         const { toast, view } = get();
         const previous = toast?.undo;
 
@@ -219,7 +306,9 @@ export const createPlannerStore = () =>
         );
 
         set({
-          data: previous,
+          data: get().data.savedMonths
+            ? { ...previous, savedMonths: get().data.savedMonths }
+            : previous,
           view: { ...view, selected: hasSelectedEmployee ? view.selected : "" },
           toast: { message: "이전 상태로 되돌렸어요." },
         });

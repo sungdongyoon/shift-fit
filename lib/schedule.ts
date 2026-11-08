@@ -42,6 +42,16 @@ export type Schedule = {
   typesByMonth: Record<string, ShiftType[]>;
   entries: Record<string, Assignment>;
   targets: Record<string, number>;
+  savedMonths?: SavedMonth[];
+};
+
+export type SavedMonth = {
+  id: string;
+  month: string;
+  version: number;
+  savedAt: string;
+  data: Omit<Schedule, "savedMonths">;
+  holidays: Record<string, string>;
 };
 
 export const labels: Record<Category, string> = {
@@ -271,6 +281,28 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
       isValidMonth(month) && Array.isArray(types) && types.every(isValidShiftType) &&
       new Set(types.map((type) => type.id)).size === types.length,
     )) throw new Error("월별 근무 타입을 읽지 못했어요.");
+
+    if (saved.savedMonths !== undefined) {
+      if (!Array.isArray(saved.savedMonths)) throw new Error("저장 기록을 읽지 못했어요.");
+
+      const ids = new Set<string>();
+      const versions = new Set<string>();
+
+      for (const record of saved.savedMonths) {
+        if (!isRecord(record) || typeof record.id !== "string" || !record.id ||
+          typeof record.month !== "string" || !isValidMonth(record.month) ||
+          !Number.isInteger(record.version) || Number(record.version) < 1 ||
+          typeof record.savedAt !== "string" || !Number.isFinite(Date.parse(record.savedAt)) ||
+          !isRecord(record.data) || record.data.version !== 3 || Object.hasOwn(record.data, "savedMonths") ||
+          !isRecord(record.holidays) || !Object.values(record.holidays).every((name) => typeof name === "string") ||
+          ids.has(record.id) || versions.has(`${record.month}:${record.version}`)
+        ) throw new Error("저장 기록을 읽지 못했어요.");
+
+        readSaved(JSON.stringify(record.data), record.month);
+        ids.add(record.id);
+        versions.add(`${record.month}:${record.version}`);
+      }
+    }
 
     return saved as unknown as Schedule;
   }

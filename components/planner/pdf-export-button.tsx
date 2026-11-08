@@ -1,5 +1,6 @@
 "use client";
 
+import { useDisplayedSchedule } from "@/hooks/use-month-schedule";
 import { useState } from "react";
 import { FaFilePdf } from "react-icons/fa6";
 import type { HolidayMap } from "@/lib/holidays";
@@ -15,7 +16,7 @@ type PdfExportButtonProps = {
 export const PdfExportButton = ({ month, holidays, disabled }: PdfExportButtonProps) => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const data = usePlannerStore((state) => state.data);
+  const data = useDisplayedSchedule();
   const notify = usePlannerStore((state) => state.notify);
 
   const exportPdf = async () => {
