@@ -12,7 +12,7 @@ type IdentityFieldsProps = {
 
 const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
   if (editor.kind === "type") {
-    return "타입을 수정하면 기존 배정에도 반영돼요. 삭제하면 기존 배정은 유지되며, 종료 시간이 이르면 다음 날 종료로 표시돼요.";
+    return "타입 수정은 이 달의 기존 배정에만 반영돼요. 삭제해도 기존 배정은 유지되며, 종료 시간이 이르면 다음 날 종료로 표시돼요.";
   }
 
   if (editor.id) {

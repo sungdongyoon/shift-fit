@@ -5,6 +5,7 @@ import {
   counts,
   DEFAULT_OFF_TARGET,
   getAssignment,
+  getMonthShiftTypes,
   type Employee,
   type Schedule,
   type ShiftType,
@@ -56,7 +57,7 @@ export const buildSchedulePdfData = (data: Schedule, month: string, holidays: Ho
   const calendars = buildCalendarGroups(data, month, employees, holidays);
   const shiftTypes = new Map<string, ShiftType>();
 
-  data.types.filter((shift) => !shift.archived).forEach((shift) => {
+  getMonthShiftTypes(data, month).filter((shift) => !shift.archived).forEach((shift) => {
     shiftTypes.set(shiftKey(shift), shift);
   });
 

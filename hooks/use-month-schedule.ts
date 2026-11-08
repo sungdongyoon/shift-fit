@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
-import { activeEmployees, counts, DEFAULT_OFF_TARGET } from "@/lib/schedule";
+import { activeEmployees, counts, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const useMonthEmployees = () => {
@@ -16,9 +16,10 @@ export const useMonthEmployees = () => {
 };
 
 export const useShiftTypes = () => {
-  const types = usePlannerStore((state) => state.data.types);
+  const typesByMonth = usePlannerStore((state) => state.data.typesByMonth);
+  const month = usePlannerStore((state) => state.view.month);
 
-  return useMemo(() => types.filter((type) => !type.archived), [types]);
+  return useMemo(() => getMonthShiftTypes({ typesByMonth }, month).filter((type) => !type.archived), [typesByMonth, month]);
 };
 
 // Calendar layout does not depend on assignments or the monthly off target.

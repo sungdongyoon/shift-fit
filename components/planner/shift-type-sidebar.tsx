@@ -2,16 +2,21 @@
 
 import { PanelHeading } from "./panel-heading";
 import { useShiftTypes } from "@/hooks/use-month-schedule";
-import { assignmentColor, colors, labels, type Category } from "@/lib/schedule";
+import { assignmentColor, colors, getMonthShiftTypes, labels, type Category } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { previousMonthKey } from "@/lib/schedule-commands";
 import { Glyph } from "./glyph";
 import { tint } from "./presentation";
-import { FaArrowUpRightFromSquare, FaPlus } from "react-icons/fa6";
+import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 
 export const ShiftTypeSidebar = () => {
   const types = useShiftTypes();
 
   const open = usePlannerStore((state) => state.openEditor);
+  const copyTypes = usePlannerStore((state) => state.copyPreviousMonthTypes);
+  const month = usePlannerStore((state) => state.view.month);
+  const canCopy = usePlannerStore((state) => Boolean(state.view.month) &&
+    getMonthShiftTypes(state.data, previousMonthKey(state.view.month)).some((type) => !type.archived));
 
   const addShiftType = () => {
     open({
@@ -28,18 +33,31 @@ export const ShiftTypeSidebar = () => {
       className="flex flex-col border-r border-line px-[18px] py-6 max-[1200px]:px-[13px] max-[1200px]:py-5 max-[640px]:border-r-0 max-[640px]:border-b max-[640px]:p-4"
       aria-label="근무 타입"
     >
-      <PanelHeading title="근무 타입" count={types.length}>
-        <button
-          className="flex justify-center items-center size-7 rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
-          aria-label="근무 타입 추가"
-          onClick={addShiftType}
-        >
-          <FaPlus className="size-4" />
-        </button>
-      </PanelHeading>
-      <p className="mt-[9px] mb-[19px] text-[10px] leading-[1.6] text-content-tertiary max-[640px]:mb-3">
-        필요한 근무 타입을 생성해보세요.
+      <PanelHeading title="근무 타입" count={types.length} />
+      <p className="mt-[9px] text-[10px] leading-[1.6] text-content-tertiary">
+        이 달의 근무 타입만 변경돼요.
       </p>
+      <div className="mt-3 mb-[19px] flex flex-col gap-2">
+        <button
+          className="min-h-9 w-full rounded-[7px] border border-line bg-canvas px-2 py-2 text-[11px] text-content-secondary enabled:hover:bg-canvas-subtle disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={copyTypes}
+          disabled={!month || !canCopy}
+        >
+          이전 월 근무타입 복사하기
+        </button>
+        <button
+          className="min-h-9 w-full rounded-[7px] border border-dashed border-line bg-transparent px-2 py-2 text-[11px] text-content-secondary hover:bg-canvas-subtle disabled:opacity-50"
+          onClick={addShiftType}
+          disabled={!month}
+        >
+          새로운 근무 타입 추가
+        </button>
+        {!canCopy && (
+          <p className="text-[10px] leading-[1.6] text-content-tertiary">
+            이전 월에 복사할 근무 타입이 없어요.
+          </p>
+        )}
+      </div>
       <div className="flex flex-col gap-[9px] max-[640px]:flex-row max-[640px]:overflow-x-auto max-[640px]:p-0.5">
         {types.map((type) => (
           <button
@@ -64,12 +82,6 @@ export const ShiftTypeSidebar = () => {
           </button>
         ))}
       </div>
-      <button
-        className="mt-3 min-h-9 w-full rounded-[7px] border border-dashed border-line bg-transparent text-[11px] text-content-secondary hover:bg-canvas-subtle max-[640px]:mt-2.5"
-        onClick={addShiftType}
-      >
-        + 근무 타입 추가
-      </button>
       <div className="mt-[25px] mb-[21px] h-px bg-line max-[640px]:hidden" />
       <h3 className="text-[11px] font-semibold text-content-secondary max-[640px]:hidden">
         근무 외 일정

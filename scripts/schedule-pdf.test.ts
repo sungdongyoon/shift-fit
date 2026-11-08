@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildSchedulePdfData } from "../lib/schedule-pdf-data";
-import { assign, getAssignment, initial, readSaved, type Schedule } from "../lib/schedule";
+import { DEFAULT_SHIFT_TYPES, assign, getAssignment, initial, readSaved, type Schedule } from "../lib/schedule";
 
 import { saveScheduleEditor } from "../lib/schedule-commands";
 
 const employee = { id: "employee", name: "김지우", color: "#5686D6", from: "2026-05" };
-const base = (): Schedule => ({ ...structuredClone(initial), employees: [employee] });
+const base = (): Schedule => ({ ...structuredClone(initial), employees: [employee], typesByMonth: { "2026-05": structuredClone(DEFAULT_SHIFT_TYPES) } });
 
 test("PDF는 선택한 월의 모든 직원과 다섯 종류의 횟수, 공휴일을 포함한다", () => {
-  let data = assign(base(), "2026-05-01", employee.id, { category: "work", shift: initial.types[0] });
+  let data = assign(base(), "2026-05-01", employee.id, { category: "work", shift: DEFAULT_SHIFT_TYPES[0] });
   data = assign(data, "2026-05-02", employee.id, { category: "leave" });
   data = assign(data, "2026-05-03", employee.id, { category: "other", memo: "외부 지원" });
   data.employees.push({ ...employee, id: "future", from: "2026-06" });
@@ -31,9 +31,9 @@ test("PDF는 선택한 월의 모든 직원과 다섯 종류의 횟수, 공휴�
 });
 
 test("기존 배정의 삭제·변경된 타입도 PDF 범례에 보존한다", () => {
-  const data = assign(base(), "2026-05-01", employee.id, { category: "work", shift: initial.types[0] });
-  data.types[0].archived = true;
-  data.types.push({ ...initial.types[0], name: "새 오픈", start: "07:00" });
+  const data = assign(base(), "2026-05-01", employee.id, { category: "work", shift: DEFAULT_SHIFT_TYPES[0] });
+  data.typesByMonth["2026-05"][0].archived = true;
+  data.typesByMonth["2026-05"].push({ ...DEFAULT_SHIFT_TYPES[0], name: "새 오픈", start: "07:00" });
   const output = buildSchedulePdfData(data, "2026-05", {});
 
   assert.equal(output.shiftTypes.filter((shift) => shift.name === "오픈").length, 1);
@@ -61,38 +61,32 @@ test("출력할 직원이나 올바른 월이 없으면 PDF 생성을 거부한�
   assert.throws(() => buildSchedulePdfData(base(), "", {}));
 });
 
-test("타입 수정은 모든 월에 반영되고 복원과 PDF에서도 동일 타입 범례가 중복되지 않는다", () => {
+test("타입 수정은 해당 월에만 반영되고 복원과 PDF에 다른 월 타입이 섞이지 않는다", () => {
   const data = assign(base(), "2026-05-04", employee.id, {
-    category: "work", shift: initial.types[2],
+    category: "work", shift: DEFAULT_SHIFT_TYPES[2],
   });
+  data.typesByMonth["2026-06"] = structuredClone(DEFAULT_SHIFT_TYPES);
   data.entries[`2026-06-04:${employee.id}`] = {
-    category: "work", shift: structuredClone(initial.types[2]),
+    category: "work", shift: structuredClone(DEFAULT_SHIFT_TYPES[2]),
   };
-  data.entries[`2026-05-05:${employee.id}`] = {
-    category: "other", memo: "교육",
-  };
+  data.entries[`2026-05-05:${employee.id}`] = { category: "other", memo: "교육" };
   const original = structuredClone(data);
   const updatedType = {
-    ...data.types[2], name: "저녁 마감", start: "15:00", end: "00:00", color: "#5686D6",
+    ...data.typesByMonth["2026-05"][2], name: "저녁 마감", start: "15:00", end: "00:00", color: "#5686D6",
   };
   const result = saveScheduleEditor(data, "2026-05", { kind: "type", ...updatedType });
 
   if (!result.ok) throw new Error(result.error);
 
-  for (const date of ["2026-05-04", "2026-06-04"]) {
-    assert.deepEqual(getAssignment(result.data, date, employee.id).shift, updatedType);
-  }
-
+  assert.deepEqual(getAssignment(result.data, "2026-05-04", employee.id).shift, updatedType);
+  assert.deepEqual(getAssignment(result.data, "2026-06-04", employee.id).shift, DEFAULT_SHIFT_TYPES[2]);
+  assert.deepEqual(result.data.typesByMonth["2026-06"], original.typesByMonth["2026-06"]);
   assert.deepEqual(data, original);
   assert.equal(getAssignment(result.data, "2026-05-05", employee.id).memo, "교육");
-  const legacy = structuredClone(original);
-  legacy.types[2] = updatedType;
-  const restored = readSaved(JSON.stringify(legacy));
-  assert.deepEqual(getAssignment(restored, "2026-05-04", employee.id).shift, updatedType);
+  const restored = readSaved(JSON.stringify(result.data));
+  assert.deepEqual(restored, result.data);
   const output = buildSchedulePdfData(restored, "2026-05", {});
   assert.deepEqual(output.shiftTypes.filter((shift) => shift.id === updatedType.id), [updatedType]);
-  assert.deepEqual(output.calendars[0].weeks.flat().find((day) => day.date === "2026-05-04")?.rows[0].assignment.shift, updatedType);
-  const archived = structuredClone(legacy);
-  archived.types[2].archived = true;
-  assert.deepEqual(getAssignment(readSaved(JSON.stringify(archived)), "2026-05-04", employee.id).shift, original.types[2]);
+  const nextMonth = buildSchedulePdfData(restored, "2026-06", {});
+  assert.deepEqual(nextMonth.shiftTypes.filter((shift) => shift.id === updatedType.id), [DEFAULT_SHIFT_TYPES[2]]);
 });

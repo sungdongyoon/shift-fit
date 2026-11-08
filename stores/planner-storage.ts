@@ -23,9 +23,9 @@ export const connectPlannerStorage = (
         storageStatus: "saved",
       });
 
-      if (saved && data && JSON.parse(saved).version === 1) {
+      if (saved && data && JSON.parse(saved).version !== data.version) {
         try {
-          // Persist the legacy cutoff once, rather than extending it on later visits.
+          // Persist schema upgrades once so month scopes and legacy defaults stay fixed.
           getStorage().setItem(STORAGE_KEY, JSON.stringify(data));
         } catch {
           store.setState({ storageStatus: "failed" });

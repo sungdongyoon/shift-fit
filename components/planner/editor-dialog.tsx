@@ -39,7 +39,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
         initial.color !== draft.color;
 
       if (hasChanges && !window.confirm(
-        `‘${initial.name}’ 근무 타입을 변경하면 다른 월을 포함해 이미 배정된 모든 일정의 이름·시간·색상에도 반영됩니다. 변경할까요?`,
+        `‘${initial.name}’ 근무 타입을 변경하면 선택한 월에 이미 배정된 일정의 이름·시간·색상에 반영됩니다. 다른 월은 변경되지 않습니다. 변경할까요?`,
       )) return;
     }
 
@@ -57,7 +57,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
     }
 
     if (initial.kind === "type") {
-      message = `‘${initial.name}’ 근무 타입을 삭제하면 다른 월에서도 새 일정 배정에 사용할 수 없습니다. 이미 배정된 일정은 마지막 이름·시간·색상으로 유지됩니다. 삭제할까요?`;
+      message = `‘${initial.name}’ 근무 타입을 삭제하면 선택한 월의 새 일정 배정에 사용할 수 없습니다. 다른 월에는 영향을 주지 않으며 이미 배정된 일정은 마지막 이름·시간·색상으로 유지됩니다. 삭제할까요?`;
     }
 
     if (message && window.confirm(message)) removeEditor(draft);

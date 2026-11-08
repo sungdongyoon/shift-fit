@@ -12,7 +12,9 @@ import {
   daysInMonth,
   DEFAULT_OFF_TARGET,
   getAssignment,
-  initial,
+  DEFAULT_SHIFT_TYPES,
+  getMonthShiftTypes,
+  monthKey,
   syncAssignmentShiftTypes,
   type Employee,
   type Schedule,
@@ -27,11 +29,13 @@ type CreateId = () => string;
 
 const saveShiftType = (
   data: Schedule,
+  month: string,
   editor: ShiftTypeEditor,
   createId: CreateId,
 ): CommandResult => {
   const name = editor.name.trim();
-  const hasDuplicateName = data.types.some(
+  const monthTypes = getMonthShiftTypes(data, month);
+  const hasDuplicateName = monthTypes.some(
     (type) => !type.archived && type.id !== editor.id && type.name === name,
   );
 
@@ -47,6 +51,10 @@ const saveShiftType = (
     return { ok: false, error: "같은 이름의 근무 타입이 있어요." };
   }
 
+  if (editor.id && !monthTypes.some((type) => type.id === editor.id && !type.archived)) {
+    return { ok: false, error: "이 달의 근무 타입을 다시 선택해 주세요." };
+  }
+
   const shiftType: ShiftType = {
     id: editor.id ?? createId(),
     name,
@@ -55,14 +63,14 @@ const saveShiftType = (
     color: editor.color,
   };
   const types = editor.id
-    ? data.types.map((type) => (type.id === editor.id ? shiftType : type))
-    : [...data.types, shiftType];
+    ? monthTypes.map((type) => (type.id === editor.id ? shiftType : type))
+    : [...monthTypes, shiftType];
 
   return {
     ok: true,
-    data: syncAssignmentShiftTypes({ ...data, types }),
+    data: syncAssignmentShiftTypes({ ...data, typesByMonth: { ...data.typesByMonth, [month]: types } }, month),
     message: editor.id
-      ? "근무 타입을 수정하고 기존 배정에도 반영했어요."
+      ? "이 달의 근무 타입과 기존 배정에 반영했어요."
       : "새 근무 타입을 추가했어요.",
   };
 };
@@ -115,6 +123,10 @@ const saveAssignment = (
   month: string,
   editor: AssignmentEditor,
 ): CommandResult => {
+  if (editor.date.slice(0, 7) !== month) {
+    return { ok: false, error: "선택한 월의 일정을 다시 열어 주세요." };
+  }
+
   const hasEmployee = activeEmployees(data, month).some(
     (employee) => employee.id === editor.employee,
   );
@@ -124,7 +136,7 @@ const saveAssignment = (
   }
 
   const currentShift = getAssignment(data, editor.date, editor.employee).shift;
-  const activeShift = data.types.find((type) => !type.archived && type.id === editor.typeId);
+  const activeShift = getMonthShiftTypes(data, month).find((type) => !type.archived && type.id === editor.typeId);
   // Only this employee's existing assignment can retain a deleted type.
   const shift = activeShift ?? (currentShift?.id === editor.typeId ? currentShift : undefined);
 
@@ -153,7 +165,7 @@ export const saveScheduleEditor = (
 ): CommandResult => {
   switch (editor.kind) {
     case "type":
-      return saveShiftType(data, editor, createId);
+      return saveShiftType(data, month, editor, createId);
     case "employee":
       return saveEmployee(data, month, editor, createId);
     case "assignment":
@@ -163,6 +175,7 @@ export const saveScheduleEditor = (
 
 export const removeScheduleEditor = (
   data: Schedule,
+  month: string,
   editor: Editor,
 ) => {
   if (editor.kind === "assignment") {
@@ -176,9 +189,12 @@ export const removeScheduleEditor = (
     return {
       data: {
         ...data,
-        types: data.types.map((type) =>
-          type.id === editor.id ? { ...type, archived: true } : type,
-        ),
+        typesByMonth: {
+          ...data.typesByMonth,
+          [month]: getMonthShiftTypes(data, month).map((type) =>
+            type.id === editor.id ? { ...type, archived: true } : type,
+          ),
+        },
       },
       message: "근무 타입을 삭제했어요. 기존 배정은 유지돼요.",
     };
@@ -203,10 +219,10 @@ export const createExampleSchedule = (
 
   const totalDays = daysInMonth(month);
   const offTarget = Math.min(data.targets[month] ?? DEFAULT_OFF_TARGET, totalDays);
-  const availableTypes = data.types.filter((type) => !type.archived);
+  const availableTypes = getMonthShiftTypes(data, month).filter((type) => !type.archived);
   const exampleTypes = availableTypes.length
     ? availableTypes
-    : initial.types.map((type) => ({ ...type, id: `demo-${type.id}` }));
+    : DEFAULT_SHIFT_TYPES.map((type) => ({ ...type, id: `demo-${type.id}` }));
   const employees = ["김지우", "이도윤", "박서연", "최하준"].map((name, index) => ({
     id: `example-${index}`,
     name,
@@ -242,6 +258,41 @@ export const createExampleSchedule = (
     ...data,
     entries,
     employees,
-    types: availableTypes.length ? data.types : [...data.types, ...exampleTypes],
+    typesByMonth: { ...data.typesByMonth, [month]: availableTypes.length
+      ? getMonthShiftTypes(data, month)
+      : [...getMonthShiftTypes(data, month), ...exampleTypes] },
+  };
+};
+
+export const previousMonthKey = (month: string) => {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const previous = new Date(year, monthNumber - 2, 1);
+
+  return monthKey(previous.getFullYear(), previous.getMonth());
+};
+
+export const copyPreviousMonthTypes = (
+  data: Schedule,
+  month: string,
+  createId: CreateId = () => crypto.randomUUID(),
+): CommandResult => {
+  const previous = previousMonthKey(month);
+  const sourceTypes = getMonthShiftTypes(data, previous).filter((type) => !type.archived);
+
+  if (!sourceTypes.length) return { ok: false, error: "이전 월에 복사할 근무 타입이 없어요." };
+
+  const currentTypes = getMonthShiftTypes(data, month);
+  const names = new Set(currentTypes.filter((type) => !type.archived).map((type) => type.name));
+  const additions = sourceTypes.filter((type) => !names.has(type.name)).map((type) => ({
+    ...type,
+    id: createId(),
+  }));
+
+  if (!additions.length) return { ok: false, error: "같은 이름의 근무 타입이 이미 있어요. 기존 타입은 유지돼요." };
+
+  return {
+    ok: true,
+    data: { ...data, typesByMonth: { ...data.typesByMonth, [month]: [...currentTypes, ...additions] } },
+    message: `이전 월의 근무 타입 ${additions.length}개를 복사했어요. 기존 타입과 배정은 유지돼요.`,
   };
 };

@@ -2,6 +2,7 @@ import { createStore } from "zustand/vanilla";
 import type { Editor } from "../lib/editor";
 import {
   createExampleSchedule,
+  copyPreviousMonthTypes,
   removeScheduleEditor,
   saveScheduleEditor,
 } from "../lib/schedule-commands";
@@ -10,6 +11,7 @@ import {
   daysInMonth,
   DEFAULT_OFF_TARGET,
   getAssignment,
+  getMonthShiftTypes,
   initial,
   monthKey,
   type Schedule,
@@ -49,6 +51,7 @@ type PlannerActions = {
   clearSelection: () => void;
   setOffTarget: (target: number) => void;
   loadExample: () => void;
+  copyPreviousMonthTypes: () => void;
   notify: (message: string) => void;
   dismissToast: () => void;
   undoLastChange: () => void;
@@ -90,7 +93,7 @@ export const createPlannerStore = () =>
           return;
         }
 
-        const types = data.types.filter((type) => !type.archived);
+        const types = getMonthShiftTypes(data, view.month).filter((type) => !type.archived);
         const selectedEmployee = employees.find((employee) => employee.id === view.selected);
 
         openEditor({
@@ -102,7 +105,7 @@ export const createPlannerStore = () =>
         });
       },
       editAssignment: (date, employee) => {
-        const { data, openEditor } = get();
+        const { data, view, openEditor } = get();
         const assignment = getAssignment(data, date, employee);
         openEditor({
           kind: "assignment",
@@ -111,7 +114,7 @@ export const createPlannerStore = () =>
           category: assignment.category,
           memo: assignment.memo ?? "",
           typeId: assignment.shift?.id ??
-            data.types.find((type) => !type.archived)?.id ?? "",
+            getMonthShiftTypes(data, view.month).find((type) => !type.archived)?.id ?? "",
           original: true,
         });
       },
@@ -125,7 +128,7 @@ export const createPlannerStore = () =>
       },
       removeEditor: (editor) => {
         const { data, view } = get();
-        const result = removeScheduleEditor(data, editor);
+        const result = removeScheduleEditor(data, view.month, editor);
         commit(result.data, result.message, {
           editor: null,
           ...(editor.kind === "employee"
@@ -179,6 +182,21 @@ export const createPlannerStore = () =>
           { ...data, targets: { ...data.targets, [view.month]: target } },
           "월 휴무 기준을 변경했어요.",
         );
+      },
+      copyPreviousMonthTypes: () => {
+        const { data, view, notify } = get();
+
+        if (!view.month) return;
+
+        const result = copyPreviousMonthTypes(data, view.month);
+
+        if (!result.ok) {
+          notify(result.error);
+
+          return;
+        }
+
+        commit(result.data, result.message);
       },
       loadExample: () => {
         const { data, view } = get();

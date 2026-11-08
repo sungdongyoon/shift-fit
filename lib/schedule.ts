@@ -37,9 +37,9 @@ export type Assignment = {
 };
 
 export type Schedule = {
-  version: 2;
+  version: 3;
   employees: Employee[];
-  types: ShiftType[];
+  typesByMonth: Record<string, ShiftType[]>;
   entries: Record<string, Assignment>;
   targets: Record<string, number>;
 };
@@ -61,35 +61,40 @@ export const colors = [
   "#C96999",
 ];
 
+export const DEFAULT_SHIFT_TYPES: ShiftType[] = [
+  {
+    id: "open",
+    name: "오픈",
+    start: "08:00",
+    end: "17:00",
+    color: colors[0],
+  },
+  {
+    id: "middle",
+    name: "미들",
+    start: "11:00",
+    end: "20:00",
+    color: colors[1],
+  },
+  {
+    id: "close",
+    name: "마감",
+    start: "14:00",
+    end: "23:00",
+    color: colors[4],
+  },
+];
+
 export const initial: Schedule = {
-  version: 2,
+  version: 3,
   employees: [],
   entries: {},
   targets: {},
-  types: [
-    {
-      id: "open",
-      name: "오픈",
-      start: "08:00",
-      end: "17:00",
-      color: colors[0],
-    },
-    {
-      id: "middle",
-      name: "미들",
-      start: "11:00",
-      end: "20:00",
-      color: colors[1],
-    },
-    {
-      id: "close",
-      name: "마감",
-      start: "14:00",
-      end: "23:00",
-      color: colors[4],
-    },
-  ],
+  typesByMonth: {},
 };
+
+export const getMonthShiftTypes = (data: Pick<Schedule, "typesByMonth">, month: string): ShiftType[] =>
+  data.typesByMonth[month] ?? [];
 
 export const monthKey = (year: number, month: number) => {
   return `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -223,15 +228,15 @@ const isValidAssignment = (value: unknown): value is Assignment => {
   return value.category !== "work" || isValidShiftType(value.shift);
 };
 
-// Active types are shared definitions; archived or missing types retain their saved details.
-export const syncAssignmentShiftTypes = (data: Schedule): Schedule => {
+// Only assignments in this month follow that month's active type definitions.
+export const syncAssignmentShiftTypes = (data: Schedule, month: string): Schedule => {
   const activeTypes = new Map(
-    data.types.filter((type) => !type.archived).map((type) => [type.id, type]),
+    getMonthShiftTypes(data, month).filter((type) => !type.archived).map((type) => [type.id, type]),
   );
   const entries = { ...data.entries };
 
   for (const [key, assignment] of Object.entries(entries)) {
-    if (assignment.category !== "work" || !assignment.shift) continue;
+    if (!key.startsWith(`${month}-`) || assignment.category !== "work" || !assignment.shift) continue;
 
     const currentType = activeTypes.get(assignment.shift.id);
 
@@ -243,62 +248,62 @@ export const syncAssignmentShiftTypes = (data: Schedule): Schedule => {
       previousType.end !== currentType.end ||
       previousType.color !== currentType.color;
 
-    if (hasChanges) {
-      entries[key] = { ...assignment, shift: { ...currentType } };
-    }
+    if (hasChanges) entries[key] = { ...assignment, shift: { ...currentType } };
   }
 
   return { ...data, entries };
 };
 
+const isValidMonth = (value: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+
 export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFullYear(), new Date().getMonth())): Schedule => {
   const saved: unknown = JSON.parse(raw);
 
   if (
-    !isRecord(saved) ||
-    (saved.version !== 1 && saved.version !== 2) ||
-    !Array.isArray(saved.employees) ||
-    !Array.isArray(saved.types) ||
-    !isRecord(saved.entries) ||
+    !isRecord(saved) || (saved.version !== 1 && saved.version !== 2 && saved.version !== 3) ||
+    !Array.isArray(saved.employees) || !saved.employees.every(isValidEmployee) ||
+    !isRecord(saved.entries) || !Object.values(saved.entries).every(isValidAssignment) ||
     !isRecord(saved.targets)
   ) {
     throw new Error("저장 형식을 확인해 주세요.");
   }
 
-  if (!saved.types.every(isValidShiftType) || !saved.employees.every(isValidEmployee)) {
-    throw new Error("저장된 직원 정보를 읽지 못했어요.");
+  if (!Object.entries(saved.targets).every(([month, target]) =>
+    isValidMonth(month) && typeof target === "number" && Number.isInteger(target) && target >= 0 && target <= 31,
+  )) throw new Error("휴무 기준이 올바르지 않아요.");
+
+  if (saved.version === 3) {
+    if (!isRecord(saved.typesByMonth) || !Object.entries(saved.typesByMonth).every(([month, types]) =>
+      isValidMonth(month) && Array.isArray(types) && types.every(isValidShiftType) &&
+      new Set(types.map((type) => type.id)).size === types.length,
+    )) throw new Error("월별 근무 타입을 읽지 못했어요.");
+
+    return saved as unknown as Schedule;
   }
 
-  if (!Object.values(saved.entries).every(isValidAssignment)) {
-    throw new Error("저장된 배정을 읽지 못했어요.");
+  if (!Array.isArray(saved.types) || !saved.types.every(isValidShiftType)) {
+    throw new Error("저장된 근무 타입을 읽지 못했어요.");
   }
 
-  const validTargets = Object.values(saved.targets).every(
-    (target) => typeof target === "number" && Number.isInteger(target) && target >= 0 && target <= 31,
-  );
+  const employees = saved.employees as Employee[];
+  const entries = saved.entries as Record<string, Assignment>;
+  const targets = saved.targets as Record<string, number>;
+  const months = [...new Set([
+    currentMonth,
+    ...employees.map((employee) => employee.from),
+    ...Object.keys(targets),
+    ...Object.keys(entries).map((key) => key.slice(0, 7)),
+  ])].filter(isValidMonth).sort();
+  const lastLegacyMonth = months.at(-1)!;
 
-  if (!validTargets) {
-    throw new Error("휴무 기준이 올바르지 않아요.");
-  }
-
-  const data = saved as unknown as Schedule;
-
-  if (saved.version === 1) {
-    // v1 omitted explicit days off. Preserve that interpretation through the latest
-    // recorded month; later months and newly added employees start unassigned.
-    const lastLegacyMonth = [
-      currentMonth,
-      ...data.employees.map((employee) => employee.from),
-      ...Object.keys(data.targets),
-      ...Object.keys(data.entries).map((key) => key.slice(0, 7)),
-    ].sort().at(-1)!;
-
-    return syncAssignmentShiftTypes({
-      ...data,
-      version: 2,
-      employees: data.employees.map((employee) => ({ ...employee, legacyOffThrough: lastLegacyMonth })),
-    });
-  }
-
-  return syncAssignmentShiftTypes(data);
+  // Preserve recorded assignment snapshots; migration must not rewrite past shifts.
+  return {
+    version: 3,
+    employees: employees.map((employee) => saved.version === 1
+      ? { ...employee, legacyOffThrough: lastLegacyMonth }
+      : employee),
+    entries,
+    targets,
+    typesByMonth: Object.fromEntries(months.map((month) => [month, structuredClone(saved.types as ShiftType[])])),
+  };
 };

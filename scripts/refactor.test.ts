@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildMonthCells, compareCalendarRows } from "../lib/calendar";
-import { initial, readSaved, type Schedule } from "../lib/schedule";
+import { DEFAULT_SHIFT_TYPES, initial, readSaved, type Schedule } from "../lib/schedule";
 import { createExampleSchedule, saveScheduleEditor } from "../lib/schedule-commands";
 import { createPlannerStore } from "../stores/planner-store";
 import { connectPlannerStorage } from "../stores/planner-storage";
@@ -25,9 +25,9 @@ test("월간 그리드는 윤년, 연도 경계와 일요일 시작 월을 정�
 test("배정은 시작 시간, 이름순으로 정렬되고 근무 외 일정은 뒤에 표시한다", () => {
   const rows = [
     { employee: { ...employee, name: "휴무" }, assignment: { category: "off" } as const },
-    { employee: { ...employee, name: "이도윤" }, assignment: { category: "work", shift: initial.types[0] } as const },
-    { employee: { ...employee, name: "김지우" }, assignment: { category: "work", shift: initial.types[0] } as const },
-    { employee: { ...employee, name: "마감" }, assignment: { category: "work", shift: initial.types[2] } as const },
+    { employee: { ...employee, name: "이도윤" }, assignment: { category: "work", shift: DEFAULT_SHIFT_TYPES[0] } as const },
+    { employee: { ...employee, name: "김지우" }, assignment: { category: "work", shift: DEFAULT_SHIFT_TYPES[0] } as const },
+    { employee: { ...employee, name: "마감" }, assignment: { category: "work", shift: DEFAULT_SHIFT_TYPES[2] } as const },
   ];
 
   assert.deepEqual(rows.sort(compareCalendarRows).map((row) => row.employee.name), [
@@ -45,7 +45,7 @@ test("일괄 생성한 예시는 원본을 변경하지 않고 기존 배정과 
   assert.deepEqual(example.entries["2025-12-01:old-employee"], { category: "leave" });
   const work = Object.values(example.entries).find((entry) => entry.category === "work")!;
   const snapshot = structuredClone(work.shift);
-  example.types.forEach((type) => { type.name = "변경"; });
+  example.typesByMonth["2026-01"].forEach((type) => { type.name = "변경"; });
   assert.deepEqual(work.shift, snapshot);
 });
 
@@ -69,7 +69,7 @@ test("분리된 편집 명령은 중복 이름을 거부하고 직원 이력을 
 
 test("손상된 목록과 배열 형태의 저장 사전은 복원 과정에서 거부한다", () => {
   for (const invalid of [
-    { ...initial, types: [null] },
+    { ...initial, typesByMonth: { "2026-11": [null] } },
     { ...initial, employees: [null] },
     { ...initial, entries: [] },
     { ...initial, targets: [] },

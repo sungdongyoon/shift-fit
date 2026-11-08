@@ -6,7 +6,7 @@ import {
   STORAGE_KEY,
   type PlannerStorage,
 } from "../stores/planner-storage";
-import { counts, getAssignment, initial, readSaved } from "../lib/schedule";
+import { DEFAULT_SHIFT_TYPES, counts, getAssignment, initial, readSaved } from "../lib/schedule";
 import { createExampleSchedule } from "../lib/schedule-commands";
 import { editorFormReducer } from "../lib/editor";
 
@@ -62,7 +62,7 @@ test("기존 localStorage 형식을 읽고 UI 조작 없이 데이터 변경당 
   store.getState().setOffTarget(7);
   assert.equal(memory.writes.length, 1);
   const parsed = JSON.parse(memory.writes[0]);
-  assert.equal(parsed.version, 2);
+  assert.equal(parsed.version, 3);
   assert.equal(parsed.targets["2026-11"], 7);
   assert.equal("view" in parsed, false);
   assert.equal("editor" in parsed, false);
@@ -159,7 +159,7 @@ test("저장 검증 실패 시 편집을 유지하고 성공·실행 취소는 �
 
 test("타입 수정은 기존 배정에 반영되고 삭제 후에도 마지막 배정을 다시 저장할 수 있다", () => {
   const store = createPlannerStore();
-  const memory = makeStorage();
+  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), typesByMonth: { "2026-10": structuredClone(DEFAULT_SHIFT_TYPES) } }));
   const stop = connectPlannerStorage(store, () => memory.storage, NOW);
   store
     .getState()
@@ -177,7 +177,7 @@ test("타입 수정은 기존 배정에 반영되고 삭제 후에도 마지막 
   const original = structuredClone(
     getAssignment(store.getState().data, "2026-10-01", employee),
   );
-  const type = store.getState().data.types[0];
+  const type = store.getState().data.typesByMonth["2026-10"][0];
   store
     .getState()
     .saveEditor({ kind: "type", ...type, start: "07:00", color: "#000000" });
@@ -300,10 +300,10 @@ test("기록이 있는 직원도 모든 월에서 삭제하고 실행 취소로 
     ...structuredClone(initial),
     employees: [employee, retained],
     entries: {
-      "2026-09-04:removed": { category: "work", shift: initial.types[0] },
+      "2026-09-04:removed": { category: "work", shift: DEFAULT_SHIFT_TYPES[0] },
       "2026-10-04:removed": { category: "other", memo: "교육" },
       "2026-11-04:removed": { category: "leave" },
-      "2026-10-04:retained": { category: "work", shift: initial.types[1] },
+      "2026-10-04:retained": { category: "work", shift: DEFAULT_SHIFT_TYPES[1] },
     },
   };
   const memory = makeStorage(JSON.stringify(saved));
@@ -324,7 +324,7 @@ test("기록이 있는 직원도 모든 월에서 삭제하고 실행 취소로 
 
 test("v1 전환 범위는 최초 복원 때 저장하고 다음 달에 늘리지 않는다", () => {
   const employee = { id: "legacy", name: "김지우", color: "#5686D6", from: "2026-01" };
-  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), version: 1, employees: [employee] }));
+  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), version: 1, types: structuredClone(DEFAULT_SHIFT_TYPES), employees: [employee] }));
   const first = createPlannerStore();
   const stopFirst = connectPlannerStorage(first, () => memory.storage, NOW);
   assert.equal(memory.writes.length, 1);
