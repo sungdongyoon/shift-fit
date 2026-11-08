@@ -12,11 +12,11 @@ export const PlannerHeader = () => (
         <Glyph name="grid" className="size-5" />
       </span>
       ShiftFit
-      <span className="ml-[3px] self-center rounded border border-line px-[5px] py-[3px] text-[9px] tracking-[0.6px] text-content-tertiary max-[640px]:hidden">
+      {/* <span className="ml-[3px] self-center rounded border border-line px-[5px] py-[3px] text-[9px] tracking-[0.6px] text-content-tertiary max-[640px]:hidden">
         BETA
-      </span>
+      </span> */}
     </Link>
-    <nav
+    {/* <nav
       aria-label="주 메뉴"
       className="flex self-stretch items-stretch max-[640px]:text-[11px]"
     >
@@ -24,7 +24,7 @@ export const PlannerHeader = () => (
         <Glyph name="calendar" />
         근무 캘린더
       </span>
-    </nav>
+    </nav> */}
     {/* <span className="ml-auto flex items-center gap-[9px] text-xs/normal text-content-secondary max-[640px]:hidden">
       <span className="grid size-[30px] place-items-center rounded-[9px] border border-line bg-canvas-subtle font-bold">
         S

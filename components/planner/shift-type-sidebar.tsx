@@ -111,11 +111,6 @@ export const ShiftTypeSidebar = () => {
           일정을 수정할 수 있어요.
         </p>
       </div>
-      <div className="mt-auto pt-9 text-[9px] leading-[1.9] text-content-tertiary max-[640px]:hidden">
-        조금 더 쉬운 스케줄 관리
-        <br />
-        <b className="font-normal tracking-[0.2px]">Made to fit your team.</b>
-      </div>
     </aside>
   );
 };

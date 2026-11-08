@@ -14,7 +14,7 @@ export const PageHeading = () => {
 
   return (
     <div className="mb-7 flex items-end justify-between gap-4 max-[640px]:mb-[22px] max-[640px]:block">
-      <div>
+      {/* <div>
         <div className="mb-[9px] text-[9px] font-bold tracking-[1.8px] text-brand-content">
           MAKE EVERY SHIFT FIT
         </div>
@@ -34,7 +34,7 @@ export const PageHeading = () => {
           data-error={status === "blocked" || status === "failed"}
         />
         {messages[status]}
-      </div>
+      </div> */}
     </div>
   );
 };
