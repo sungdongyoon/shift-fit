@@ -1,6 +1,5 @@
 "use client";
 
-import { useReadOnlySchedule } from "@/hooks/use-month-schedule";
 import { BsThreeDots } from "react-icons/bs";
 import { categories, labels, type EmployeeScheduleSummary } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
@@ -11,8 +10,6 @@ type EmployeeCardProps = {
 };
 
 export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
-  const readOnly = useReadOnlySchedule();
-
   const isSelected = usePlannerStore((state) => state.view.selected === employee.id);
   const selectEmployee = usePlannerStore((state) => state.selectEmployee);
   const openEditor = usePlannerStore((state) => state.openEditor);
@@ -41,7 +38,7 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
             {employee.name}
           </strong>
         </button>
-        {!readOnly && <button
+        <button
           className="ml-auto h-[26px] w-6 border-0 bg-transparent text-xl/normal text-content-tertiary"
           aria-label={`${employee.name} 정보 수정`}
           onClick={() =>
@@ -54,7 +51,7 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
           }
         >
           <BsThreeDots className="size-3" />
-        </button>}
+        </button>
       </div>
       <div className="mt-[13px] ml-[38px] grid grid-cols-5 gap-[5px] max-[1200px]:ml-0 max-[960px]:ml-[38px] max-[640px]:ml-0">
         {categories.map((category) => (

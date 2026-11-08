@@ -93,3 +93,20 @@ test("타입 수정은 해당 월에만 반영되고 복원과 PDF에 다른 월
   const nextMonth = buildSchedulePdfData(restored, "2026-06", {});
   assert.deepEqual(nextMonth.shiftTypes.filter((shift) => shift.id === updatedType.id), [DEFAULT_SHIFT_TYPES[2]]);
 });
+
+
+test("이전 버전 저장 기록이 포함되어도 작업본 복원·수정·PDF 출력은 유지한다", () => {
+  const legacyRecords = [{ id: "old-record", month: "2026-05", version: 1 }];
+  const restored = readSaved(JSON.stringify({ ...base(), savedMonths: legacyRecords }));
+  const result = saveScheduleEditor(restored, "2026-05", {
+    kind: "assignment", date: "2026-05-01", employee: employee.id, category: "off", typeId: "",
+  });
+
+  if (!result.ok) throw new Error(result.error);
+
+  const serialized = JSON.parse(JSON.stringify(result.data));
+  assert.deepEqual(serialized.savedMonths, legacyRecords);
+  const output = buildSchedulePdfData(result.data, "2026-05", {});
+  assert.equal(output.employees[0].counts.off, 1);
+  assert.equal(output.employees[0].counts.unassigned, 30);
+});

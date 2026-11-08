@@ -3,18 +3,13 @@
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
 import { counts, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
-import { displayedSchedule } from "@/stores/planner-store";
 import { usePlannerStore } from "@/providers/planner-provider";
 
-export const useDisplayedSchedule = () => usePlannerStore(displayedSchedule);
-
-export const useReadOnlySchedule = () => usePlannerStore((state) => Boolean(state.selectedSavedMonth));
-
 export const useEmployees = () =>
-  usePlannerStore((state) => displayedSchedule(state).employees);
+  usePlannerStore((state) => state.data.employees);
 
 export const useShiftTypes = () => {
-  const typesByMonth = usePlannerStore((state) => displayedSchedule(state).typesByMonth);
+  const typesByMonth = usePlannerStore((state) => state.data.typesByMonth);
   const month = usePlannerStore((state) => state.view.month);
 
   return useMemo(() => getMonthShiftTypes({ typesByMonth }, month).filter((type) => !type.archived), [typesByMonth, month]);
@@ -34,9 +29,9 @@ export const useMonthCalendar = () => {
 
 export const useMonthSchedule = () => {
   const month = usePlannerStore((state) => state.view.month);
-  const entries = usePlannerStore((state) => displayedSchedule(state).entries);
+  const entries = usePlannerStore((state) => state.data.entries);
   const target = usePlannerStore(
-    (state) => displayedSchedule(state).targets[state.view.month] ?? DEFAULT_OFF_TARGET,
+    (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
 
   const employees = useEmployees();

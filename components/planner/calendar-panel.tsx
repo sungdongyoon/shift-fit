@@ -5,7 +5,6 @@ import { useHolidays } from "@/hooks/use-holidays";
 import { useMonthCalendar } from "@/hooks/use-month-schedule";
 import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
-import { SaveScheduleButton } from "./save-schedule-button";
 import { PdfExportButton } from "./pdf-export-button";
 import { CalendarGrid } from "./calendar-grid";
 import { Glyph } from "./glyph";
@@ -20,10 +19,7 @@ export const CalendarPanel = () => {
     employees,
   } = useMonthCalendar();
 
-  const { holidays: currentHolidays, status: holidayStatus, retry } = useHolidays(year);
-  const savedMonth = usePlannerStore((state) => state.selectedSavedMonth);
-  const showWorking = usePlannerStore((state) => state.showWorkingMonth);
-  const holidays = savedMonth?.holidays ?? currentHolidays;
+  const { holidays, status: holidayStatus, retry } = useHolidays(year);
 
   const ready = usePlannerStore((state) => state.storageStatus !== "loading");
   const selected = usePlannerStore((state) => state.view.selected);
@@ -37,7 +33,7 @@ export const CalendarPanel = () => {
   const loadExample = usePlannerStore((state) => state.loadExample);
 
   const selectedEmployee = employees.find((employee) => employee.id === selected);
-  const showHolidayNotice = !savedMonth && (holidayStatus === "error" || holidayStatus === "unavailable");
+  const showHolidayNotice = holidayStatus === "error" || holidayStatus === "unavailable";
 
   return (
     <section
@@ -76,17 +72,8 @@ export const CalendarPanel = () => {
             오늘
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <SaveScheduleButton holidays={holidays} disabled={!ready || !employees.length} />
-          <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
-        </div>
+        <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
       </div>
-      {savedMonth && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-y border-line bg-warning-subtle px-5 py-2.5 text-[11px]">
-          <span className="mr-auto font-semibold">저장본 · {Number(savedMonth.month.slice(5))}월 v{savedMonth.version} · 읽기 전용</span>
-          <button type="button" onClick={showWorking} className="underline underline-offset-2">현재 작업본으로 돌아가기</button>
-        </div>
-      )}
       {showHolidayNotice && (
         <div
           role="status"
@@ -117,7 +104,7 @@ export const CalendarPanel = () => {
         </div>
       )}
       <CalendarGrid cells={cells} holidays={holidays} employees={employees} />
-      {ready && !savedMonth && !employees.length && (
+      {ready && !employees.length && (
         <div className="absolute top-[220px] left-1/2 z-1 w-[330px] max-w-[90%] -translate-x-1/2 rounded-[14px] border border-line bg-canvas px-5 py-[26px] text-center shadow-[0_6px_45px_#1717190a] max-[640px]:top-[185px]">
           <div className="mx-auto mb-3.5 grid size-10 place-items-center rounded-xl bg-brand-subtle text-brand-content">
             <Glyph name="people" />

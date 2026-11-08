@@ -1,15 +1,14 @@
 "use client";
 
-import { useDisplayedSchedule, useReadOnlySchedule } from "@/hooks/use-month-schedule";
 import { PanelHeading } from "./panel-heading";
 import { daysInMonth, DEFAULT_OFF_TARGET } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const OffTargetSettings = () => {
   const month = usePlannerStore((state) => state.view.month);
-  const data = useDisplayedSchedule();
-  const readOnly = useReadOnlySchedule();
-  const target = data.targets[month] ?? DEFAULT_OFF_TARGET;
+  const target = usePlannerStore(
+    (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
+  );
   const ready = usePlannerStore((state) => state.storageStatus !== "loading");
   const setOffTarget = usePlannerStore((state) => state.setOffTarget);
   const days = month ? daysInMonth(month) : 31;
@@ -30,7 +29,7 @@ export const OffTargetSettings = () => {
           min="0"
           max={days}
           value={target}
-          disabled={!ready || readOnly}
+          disabled={!ready}
           onChange={(event) => setOffTarget(event.target.valueAsNumber)}
           className="h-8 min-w-0 w-full border-0 bg-transparent font-semibold text-content"
         />

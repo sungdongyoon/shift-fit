@@ -2,7 +2,7 @@
 
 import { PanelHeading } from "./panel-heading";
 import { useState } from "react";
-import { useMonthSchedule, useReadOnlySchedule } from "@/hooks/use-month-schedule";
+import { useMonthSchedule } from "@/hooks/use-month-schedule";
 import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { FaPlus } from "react-icons/fa6";
@@ -10,8 +10,6 @@ import { FaSearch } from "react-icons/fa";
 import { EmployeeCard } from "./employee-card";
 
 export const EmployeeList = () => {
-  const readOnly = useReadOnlySchedule();
-
   const { employees, stats, target } = useMonthSchedule();
 
   const [search, setSearch] = useState("");
@@ -38,7 +36,7 @@ export const EmployeeList = () => {
         <button
           className="size-[26px] flex justify-center items-center rounded-md border border-line bg-canvas text-xl/normal leading-5 text-content-secondary hover:bg-surface-hover"
           aria-label="근무자 추가"
-          disabled={!ready || readOnly}
+          disabled={!ready}
           onClick={addEmployee}
         >
           <FaPlus className="size-3" />
@@ -82,7 +80,7 @@ export const EmployeeList = () => {
       </div>
       <button
         className="mt-3 min-h-9 w-full rounded-[7px] border border-dashed border-line bg-transparent text-[11px] text-content-secondary hover:bg-canvas-subtle"
-        disabled={!ready || readOnly}
+        disabled={!ready}
         onClick={addEmployee}
       >
         + 근무자 추가
