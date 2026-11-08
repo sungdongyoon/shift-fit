@@ -110,18 +110,12 @@ export const dateKey = (month: string, day: number) => {
   return `${month}-${String(day).padStart(2, "0")}`;
 };
 
-export const activeEmployees = (
-  data: Pick<Schedule, "employees">,
-  month: string,
-) => {
-  return data.employees.filter(
-    (employee) =>
-      employee.from <= month && (!employee.until || employee.until >= month),
-  );
-};
-
 export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
-  if (employee?.legacyOffThrough && date.slice(0, 7) <= employee.legacyOffThrough) {
+  const month = date.slice(0, 7);
+  const wasPreviouslyVisible = employee && employee.from <= month &&
+    (!employee.until || employee.until >= month);
+
+  if (wasPreviouslyVisible && employee.legacyOffThrough && month <= employee.legacyOffThrough) {
     return DEFAULT_OFF_ASSIGNMENT;
   }
 

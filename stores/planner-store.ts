@@ -7,7 +7,6 @@ import {
   saveScheduleEditor,
 } from "../lib/schedule-commands";
 import {
-  activeEmployees,
   daysInMonth,
   DEFAULT_OFF_TARGET,
   getAssignment,
@@ -86,7 +85,7 @@ export const createPlannerStore = () =>
       closeEditor: () => set({ editor: null }),
       addAssignment: (date) => {
         const { data, view, notify, openEditor } = get();
-        const employees = activeEmployees(data, view.month);
+        const employees = data.employees;
         if (!employees.length) {
           notify("먼저 우측에서 근무자를 추가해 주세요.");
 
@@ -215,7 +214,7 @@ export const createPlannerStore = () =>
 
         if (!previous) return;
 
-        const hasSelectedEmployee = activeEmployees(previous, view.month).some(
+        const hasSelectedEmployee = previous.employees.some(
           (employee) => employee.id === view.selected,
         );
 

@@ -2,18 +2,11 @@
 
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
-import { activeEmployees, counts, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
+import { counts, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
-export const useMonthEmployees = () => {
-  const employees = usePlannerStore((state) => state.data.employees);
-  const month = usePlannerStore((state) => state.view.month);
-
-  return useMemo(
-    () => (month ? activeEmployees({ employees }, month) : []),
-    [employees, month],
-  );
-};
+export const useEmployees = () =>
+  usePlannerStore((state) => state.data.employees);
 
 export const useShiftTypes = () => {
   const typesByMonth = usePlannerStore((state) => state.data.typesByMonth);
@@ -26,7 +19,7 @@ export const useShiftTypes = () => {
 export const useMonthCalendar = () => {
   const month = usePlannerStore((state) => state.view.month);
 
-  const employees = useMonthEmployees();
+  const employees = useEmployees();
 
   const cells = useMemo(() => buildMonthCells(month), [month]);
   const [year = 0, monthNumber = 0] = month.split("-").map(Number);
@@ -41,7 +34,7 @@ export const useMonthSchedule = () => {
     (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
 
-  const employees = useMonthEmployees();
+  const employees = useEmployees();
 
   // Shift-type edits and off-target edits do not change assignment totals.
   const stats = useMemo(

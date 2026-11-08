@@ -336,3 +336,27 @@ test("v1 전환 범위는 최초 복원 때 저장하고 다음 달에 늘리지
   assert.equal(getAssignment(second.getState().data, "2026-11-01", employee.id).category, "unassigned");
   stopSecond();
 });
+
+test("11월에 추가한 직원은 이전·이후 월에도 표시되고 배정할 수 있다", () => {
+  const store = createPlannerStore();
+  const memory = makeStorage();
+  const stop = connectPlannerStorage(store, () => memory.storage, new Date(2026, 10, 8));
+  store.getState().saveEditor({ kind: "employee", name: "전역 직원", color: "#5686D6" });
+  const employee = store.getState().data.employees[0];
+  store.getState().navigateMonth(-1);
+  store.getState().addAssignment("2026-10-04");
+  const editor = store.getState().editor;
+  assert.equal(editor?.kind === "assignment" && editor.employee, employee.id);
+  assert.equal(getAssignment(store.getState().data, "2026-10-04", employee.id).category, "unassigned");
+  assert.equal(store.getState().saveEditor({
+    kind: "assignment", date: "2026-10-04", employee: employee.id, category: "off", typeId: "",
+  }), null);
+  assert.ok(store.getState().saveEditor({ kind: "employee", name: "전역 직원", color: "#5686D6" }));
+  store.getState().navigateMonth(2);
+  store.getState().addAssignment("2026-12-04");
+  assert.equal(store.getState().editor?.kind, "assignment");
+  assert.equal(getAssignment(store.getState().data, "2026-12-04", employee.id).category, "unassigned");
+  assert.equal(getAssignment(readSaved(memory.read()!), "2026-10-04", employee.id).category, "off");
+  assert.deepEqual(store.getState().data.typesByMonth, {});
+  stop();
+});

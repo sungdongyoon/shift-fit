@@ -2,7 +2,7 @@
 
 import { Select } from "@/components/ui/select";
 import { TextField } from "@/components/ui/text-field";
-import { useMonthEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
+import { useEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
 import type { AssignmentEditor, Editor } from "@/lib/editor";
 import { categories, getAssignment, labels } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
@@ -16,7 +16,7 @@ export const AssignmentFields = ({
   editor,
   onChange,
 }: AssignmentFieldsProps) => {
-  const employees = useMonthEmployees();
+  const employees = useEmployees();
 
   const types = useShiftTypes();
 

@@ -5,7 +5,6 @@ import {
   type ShiftTypeEditor,
 } from "./editor";
 import {
-  activeEmployees,
   assign,
   colors,
   dateKey,
@@ -82,7 +81,7 @@ const saveEmployee = (
   createId: CreateId,
 ): CommandResult => {
   const name = editor.name.trim();
-  const hasDuplicateName = activeEmployees(data, month).some(
+  const hasDuplicateName = data.employees.some(
     (employee) => employee.id !== editor.id && employee.name === name,
   );
 
@@ -114,7 +113,7 @@ const saveEmployee = (
     data: { ...data, employees },
     message: editor.id
       ? "근무자 정보를 수정했어요."
-      : "근무자를 추가했어요. 모든 날짜는 미배정으로 시작해요.",
+      : "근무자를 추가했어요. 모든 월에 표시되고, 일정은 미배정으로 시작해요.",
   };
 };
 
@@ -127,7 +126,7 @@ const saveAssignment = (
     return { ok: false, error: "선택한 월의 일정을 다시 열어 주세요." };
   }
 
-  const hasEmployee = activeEmployees(data, month).some(
+  const hasEmployee = data.employees.some(
     (employee) => employee.id === editor.employee,
   );
 

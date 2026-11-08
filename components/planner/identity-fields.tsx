@@ -19,7 +19,7 @@ const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
     return "삭제하면 근무자와 모든 월의 일정이 함께 삭제돼요. 삭제 직후 실행 취소로 되돌릴 수 있어요.";
   }
 
-  return "현재 월부터 등록돼요. 모든 날짜에 미배정 상태로 이름이 표시돼요.";
+  return "이전·이후 모든 월에 표시돼요. 일정이 없는 날짜는 미배정으로 시작해요.";
 };
 
 export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (

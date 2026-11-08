@@ -1,7 +1,6 @@
 import { buildMonthCells, compareCalendarRows } from "./calendar";
 import type { HolidayMap } from "./holidays";
 import {
-  activeEmployees,
   counts,
   DEFAULT_OFF_TARGET,
   getAssignment,
@@ -50,7 +49,7 @@ export const buildSchedulePdfData = (data: Schedule, month: string, holidays: Ho
     throw new Error("출력할 월을 확인해 주세요.");
   }
 
-  const employees = activeEmployees(data, month);
+  const employees = data.employees;
 
   if (!employees.length) throw new Error("출력할 근무자를 먼저 등록해 주세요.");
 

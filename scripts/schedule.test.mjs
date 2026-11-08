@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SHIFT_TYPES, initial, activeEmployees, assign, counts, getAssignment, readSaved, daysInMonth } from '../lib/schedule.ts';
+import { DEFAULT_SHIFT_TYPES, initial, assign, counts, getAssignment, readSaved, daysInMonth } from '../lib/schedule.ts';
 
 const employee = { id: 'employee-1', name: '테스트 직원', color: '#5686D6', from: '2026-10' };
 
@@ -36,12 +36,6 @@ test('월별 집계는 서로 섞이지 않고 연차와 기타를 휴무로 계
   assert.deepEqual(counts(data, '2026-10', employee.id), { work: 0, off: 0, leave: 1, other: 1, unassigned: 29 });
   assert.equal(counts(data, '2026-11', employee.id).unassigned, 30);
 });
-test('등록 이전에는 표시하지 않고 비활성화 이후 월에는 숨기되 기존 월은 유지한다', () => {
-  const data = base(); data.employees[0] = { ...employee, until: '2026-10' };
-  assert.equal(activeEmployees(data, '2026-09').length, 0);
-  assert.equal(activeEmployees(data, '2026-10').length, 1);
-  assert.equal(activeEmployees(data, '2026-11').length, 0);
-});
 test('저장 후 복원하면 배정과 월 휴무 기준이 동일하다', () => {
   const data = assign(base(), '2026-10-01', employee.id, { category: 'work', shift: DEFAULT_SHIFT_TYPES[0] });
   data.targets['2026-10'] = 8;
@@ -73,4 +67,12 @@ test('v1의 기존 휴무 집계는 유지하고 새 월과 새 직원은 미배
   const explicit = assign(restored, '2026-10-01', employee.id, { category: 'unassigned' });
   assert.equal(getAssignment(readSaved(JSON.stringify(explicit)), '2026-10-01', employee.id).category, 'unassigned');
   assert.equal(legacy.employees[0].legacyOffThrough, undefined);
+});
+
+test('전역 명단으로 바뀌어도 구버전에서 숨겨졌던 날짜를 휴무로 채우지 않는다', () => {
+  const data = base();
+  data.employees[0] = { ...employee, until: '2026-11', legacyOffThrough: '2026-12' };
+  assert.equal(getAssignment(data, '2026-09-01', employee.id).category, 'unassigned');
+  assert.equal(getAssignment(data, '2026-10-01', employee.id).category, 'off');
+  assert.equal(getAssignment(data, '2026-12-01', employee.id).category, 'unassigned');
 });

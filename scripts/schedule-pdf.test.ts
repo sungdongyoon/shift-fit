@@ -20,12 +20,15 @@ test("PDF는 선택한 월의 모든 직원과 다섯 종류의 횟수, 공휴�
 
   assert.equal(output.filename, "shiftfit-2026-05.pdf");
   assert.equal(output.target, 9);
-  assert.equal(output.employees.length, 1);
+  assert.equal(output.employees.length, 3);
+  assert.deepEqual(output.employees.map((person) => person.id), [employee.id, "future", "past"]);
   assert.deepEqual(output.employees[0].counts, { work: 1, off: 0, leave: 1, other: 1, unassigned: 28 });
   const days = output.calendars[0].weeks.flat();
   assert.equal(days.find((day) => day.date === "2026-05-05")?.holiday, "어린이날");
   assert.equal(days.find((day) => day.date === "2026-05-03")?.rows[0].assignment.memo, "외부 지원");
   assert.equal(days.filter((day) => day.isCurrentMonth).length, 31);
+  assert.ok(days.filter((day) => day.isCurrentMonth).every((day) => day.rows.length === 3));
+  assert.ok(output.employees.slice(1).every((person) => person.counts.unassigned === 31));
   assert.ok(days.filter((day) => !day.isCurrentMonth).every((day) => day.rows.length === 0));
   assert.deepEqual(data, before);
 });
