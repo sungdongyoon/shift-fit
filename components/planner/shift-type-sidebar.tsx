@@ -75,7 +75,7 @@ export const ShiftTypeSidebar = () => {
         근무 외 일정
       </h3>
       <div className="mt-4 mb-[26px] flex flex-col gap-3.5 text-[11px] text-content-secondary max-[640px]:hidden">
-        {(["off", "leave", "other"] as Category[]).map((category) => (
+        {(["off", "leave", "other", "unassigned"] as Category[]).map((category) => (
           <div key={category} className="flex items-center gap-[9px]">
             <span
               className="size-2 rounded-[3px]"

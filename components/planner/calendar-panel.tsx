@@ -115,7 +115,7 @@ export const CalendarPanel = () => {
           <p className="mt-2.5 mb-[18px] text-[11px] leading-[1.9] text-content-tertiary">
             직원을 등록하면 모든 날짜에 이름이 표시돼요.
             <br />
-            처음에는 휴무로 채워지고, 원하는 날에 근무를 배정할 수 있어요.
+            처음에는 미배정으로 표시되고, 원하는 날에 근무를 배정할 수 있어요.
           </p>
           <Button
             size="sm"

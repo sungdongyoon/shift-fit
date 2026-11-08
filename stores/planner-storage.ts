@@ -1,7 +1,7 @@
 import { dateKey, monthKey, readSaved } from "../lib/schedule";
 import type { PlannerStoreApi } from "./planner-store";
 
-// Keep the original key and raw Schedule format so existing schedules need no migration.
+// Keep the storage key; readSaved upgrades older payloads before normal editing.
 export const STORAGE_KEY = "shiftfit.schedule.v1";
 
 export type PlannerStorage = Pick<Storage, "getItem" | "setItem">;
@@ -16,11 +16,21 @@ export const connectPlannerStorage = (
     const view = { month, today: dateKey(month, now.getDate()), selected: "" };
     try {
       const saved = getStorage().getItem(STORAGE_KEY);
+      const data = saved !== null ? readSaved(saved, month) : undefined;
       store.setState({
-        ...(saved !== null ? { data: readSaved(saved) } : {}),
+        ...(data ? { data } : {}),
         view,
         storageStatus: "saved",
       });
+
+      if (saved && data && JSON.parse(saved).version === 1) {
+        try {
+          // Persist the legacy cutoff once, rather than extending it on later visits.
+          getStorage().setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch {
+          store.setState({ storageStatus: "failed" });
+        }
+      }
     } catch {
       // Never overwrite the original payload when restoration fails.
       store.setState({ view, storageStatus: "blocked" });

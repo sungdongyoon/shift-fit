@@ -46,7 +46,7 @@ export const useMonthSchedule = () => {
   const stats = useMemo(
     () => employees.map((employee) => ({
       ...employee,
-      counts: counts({ entries }, month, employee.id),
+      counts: counts({ entries, employees }, month, employee.id),
     })),
     [entries, month, employees],
   );

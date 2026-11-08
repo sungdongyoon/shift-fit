@@ -53,7 +53,7 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
           <BsThreeDots className="size-3" />
         </button>
       </div>
-      <div className="mt-[13px] ml-[38px] grid grid-cols-4 gap-[5px] max-[1200px]:ml-0 max-[960px]:ml-[38px] max-[640px]:ml-0">
+      <div className="mt-[13px] ml-[38px] grid grid-cols-5 gap-[5px] max-[1200px]:ml-0 max-[960px]:ml-[38px] max-[640px]:ml-0">
         {categories.map((category) => (
           <div
             key={category}

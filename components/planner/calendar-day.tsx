@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   assignmentColor,
   labels,
-  DEFAULT_OFF_ASSIGNMENT,
+  defaultAssignment,
   type Employee,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
@@ -44,7 +44,7 @@ export const CalendarDay = memo(
       useShallow((state) =>
         employees.map(
           (employee) =>
-            state.data.entries[`${date}:${employee.id}`] ?? DEFAULT_OFF_ASSIGNMENT,
+            state.data.entries[`${date}:${employee.id}`] ?? defaultAssignment(employee, date),
         ),
       ),
     );
@@ -105,7 +105,7 @@ export const CalendarDay = memo(
               aria-label={`${monthNumber}월 ${day}일 ${employee.name} ${labels[assignment.category]} 수정`}
               onClick={() => editAssignment(date, employee.id)}
             >
-              {employee.name}
+              {employee.name}{assignment.category === "unassigned" ? " · 미배정" : ""}
             </button>
           ))}
         </div>

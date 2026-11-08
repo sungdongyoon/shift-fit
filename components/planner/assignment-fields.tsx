@@ -21,7 +21,7 @@ export const AssignmentFields = ({
   const types = useShiftTypes();
 
   const entries = usePlannerStore((state) => state.data.entries);
-  const existing = getAssignment({ entries }, editor.date, editor.employee);
+  const existing = getAssignment({ entries, employees }, editor.date, editor.employee);
   const assignedShift = existing.shift;
   const hasDeletedShift = Boolean(
     assignedShift && !types.some((type) => type.id === assignedShift.id),
@@ -54,7 +54,7 @@ export const AssignmentFields = ({
         />
       )}
       <div
-        className="grid grid-cols-4 gap-[3px] rounded-[9px] bg-canvas-subtle p-1"
+        className="grid grid-cols-5 gap-[3px] rounded-[9px] bg-canvas-subtle p-1"
         role="group"
         aria-label="일정 종류"
       >
@@ -95,8 +95,8 @@ export const AssignmentFields = ({
         />
       )}
       <p className="rounded-control bg-canvas-subtle p-3 text-[11px] leading-[1.9] text-content-tertiary">
-        {existing.category === "off"
-          ? "이 직원의 휴무를 선택한 일정으로 변경해요."
+        {existing.category === "unassigned"
+          ? "이 직원의 미배정 상태를 선택한 일정으로 변경해요."
           : "이미 배정된 일정이 있어요. 저장하면 기존 일정을 변경해요."}
       </p>
     </>

@@ -106,7 +106,7 @@ const saveEmployee = (
     data: { ...data, employees },
     message: editor.id
       ? "근무자 정보를 수정했어요."
-      : "근무자를 추가했어요. 모든 날짜는 휴무로 시작해요.",
+      : "근무자를 추가했어요. 모든 날짜는 미배정으로 시작해요.",
   };
 };
 
@@ -226,9 +226,13 @@ export const createExampleSchedule = (
     );
 
     for (let day = 1; day <= totalDays; day++) {
-      if (offDays.has(day)) continue;
-
       const key = `${dateKey(month, day)}:${employee.id}`;
+
+      if (offDays.has(day)) {
+        entries[key] = { category: "off" };
+        continue;
+      }
+
       const shift = exampleTypes[(day + employeeIndex) % exampleTypes.length];
       entries[key] = { category: "work", shift: structuredClone(shift) };
     }

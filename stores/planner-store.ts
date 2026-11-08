@@ -97,7 +97,7 @@ export const createPlannerStore = () =>
           kind: "assignment",
           date,
           employee: selectedEmployee?.id ?? employees[0].id,
-          category: types.length ? "work" : "off",
+          category: "unassigned",
           typeId: types[0]?.id ?? "",
         });
       },

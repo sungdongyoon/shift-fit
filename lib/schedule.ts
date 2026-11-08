@@ -1,4 +1,4 @@
-export const categories = ["work", "off", "leave", "other"] as const;
+export const categories = ["work", "off", "leave", "other", "unassigned"] as const;
 
 export type Category = (typeof categories)[number];
 
@@ -7,6 +7,8 @@ export type AssignmentCounts = Record<Category, number>;
 export const DEFAULT_OFF_TARGET = 8;
 
 export const DEFAULT_OFF_ASSIGNMENT: Assignment = Object.freeze({ category: "off" });
+
+export const DEFAULT_UNASSIGNED: Assignment = Object.freeze({ category: "unassigned" });
 
 export type ShiftType = {
   id: string;
@@ -23,6 +25,7 @@ export type Employee = {
   color: string;
   from: string;
   until?: string;
+  legacyOffThrough?: string;
 };
 
 export type EmployeeScheduleSummary = Employee & { counts: AssignmentCounts; };
@@ -34,7 +37,7 @@ export type Assignment = {
 };
 
 export type Schedule = {
-  version: 1;
+  version: 2;
   employees: Employee[];
   types: ShiftType[];
   entries: Record<string, Assignment>;
@@ -46,6 +49,7 @@ export const labels: Record<Category, string> = {
   off: "휴무",
   leave: "연차",
   other: "기타",
+  unassigned: "미배정",
 };
 
 export const colors = [
@@ -58,7 +62,7 @@ export const colors = [
 ];
 
 export const initial: Schedule = {
-  version: 1,
+  version: 2,
   employees: [],
   entries: {},
   targets: {},
@@ -111,12 +115,24 @@ export const activeEmployees = (
   );
 };
 
+export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
+  if (employee?.legacyOffThrough && date.slice(0, 7) <= employee.legacyOffThrough) {
+    return DEFAULT_OFF_ASSIGNMENT;
+  }
+
+  return DEFAULT_UNASSIGNED;
+};
+
 export const getAssignment = (
-  data: Pick<Schedule, "entries">,
+  data: Pick<Schedule, "entries"> & Partial<Pick<Schedule, "employees">>,
   date: string,
   employeeId: string,
 ): Assignment => {
-  return data.entries[`${date}:${employeeId}`] ?? { category: "off" };
+  const saved = data.entries[`${date}:${employeeId}`];
+
+  if (saved) return saved;
+
+  return defaultAssignment(data.employees?.find((employee) => employee.id === employeeId), date);
 };
 
 export const assign = (
@@ -127,21 +143,17 @@ export const assign = (
 ): Schedule => {
   const entries = { ...data.entries };
 
-  if (assignment.category === "off") {
-    delete entries[`${date}:${employeeId}`];
-  } else {
-    entries[`${date}:${employeeId}`] = structuredClone(assignment);
-  }
+  entries[`${date}:${employeeId}`] = structuredClone(assignment);
 
   return { ...data, entries };
 };
 
 export const counts = (
-  data: Pick<Schedule, "entries">,
+  data: Pick<Schedule, "entries"> & Partial<Pick<Schedule, "employees">>,
   month: string,
   employeeId: string,
 ): AssignmentCounts => {
-  const result: AssignmentCounts = { work: 0, off: 0, leave: 0, other: 0 };
+  const result: AssignmentCounts = { work: 0, off: 0, leave: 0, other: 0, unassigned: 0 };
   const totalDays = daysInMonth(month);
 
   for (let day = 1; day <= totalDays; day++) {
@@ -153,6 +165,7 @@ export const counts = (
 };
 
 const nonWorkColors = {
+  unassigned: "#CBD5E1",
   off: "#A3A6AE",
   leave: "#42A184",
   other: "#8B6AC8",
@@ -194,7 +207,9 @@ const isValidEmployee = (value: unknown): value is Employee => {
     typeof value.name === "string" &&
     isValidColor(value.color) &&
     typeof value.from === "string" &&
-    /^\d{4}-\d{2}$/.test(value.from)
+    /^\d{4}-\d{2}$/.test(value.from) &&
+    (value.legacyOffThrough === undefined ||
+      (typeof value.legacyOffThrough === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value.legacyOffThrough)))
   );
 };
 
@@ -236,12 +251,12 @@ export const syncAssignmentShiftTypes = (data: Schedule): Schedule => {
   return { ...data, entries };
 };
 
-export const readSaved = (raw: string): Schedule => {
+export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFullYear(), new Date().getMonth())): Schedule => {
   const saved: unknown = JSON.parse(raw);
 
   if (
     !isRecord(saved) ||
-    saved.version !== 1 ||
+    (saved.version !== 1 && saved.version !== 2) ||
     !Array.isArray(saved.employees) ||
     !Array.isArray(saved.types) ||
     !isRecord(saved.entries) ||
@@ -266,5 +281,24 @@ export const readSaved = (raw: string): Schedule => {
     throw new Error("휴무 기준이 올바르지 않아요.");
   }
 
-  return syncAssignmentShiftTypes(saved as Schedule);
+  const data = saved as unknown as Schedule;
+
+  if (saved.version === 1) {
+    // v1 omitted explicit days off. Preserve that interpretation through the latest
+    // recorded month; later months and newly added employees start unassigned.
+    const lastLegacyMonth = [
+      currentMonth,
+      ...data.employees.map((employee) => employee.from),
+      ...Object.keys(data.targets),
+      ...Object.keys(data.entries).map((key) => key.slice(0, 7)),
+    ].sort().at(-1)!;
+
+    return syncAssignmentShiftTypes({
+      ...data,
+      version: 2,
+      employees: data.employees.map((employee) => ({ ...employee, legacyOffThrough: lastLegacyMonth })),
+    });
+  }
+
+  return syncAssignmentShiftTypes(data);
 };

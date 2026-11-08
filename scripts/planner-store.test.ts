@@ -62,7 +62,7 @@ test("기존 localStorage 형식을 읽고 UI 조작 없이 데이터 변경당 
   store.getState().setOffTarget(7);
   assert.equal(memory.writes.length, 1);
   const parsed = JSON.parse(memory.writes[0]);
-  assert.equal(parsed.version, 1);
+  assert.equal(parsed.version, 2);
   assert.equal(parsed.targets["2026-11"], 7);
   assert.equal("view" in parsed, false);
   assert.equal("editor" in parsed, false);
@@ -320,4 +320,19 @@ test("기록이 있는 직원도 모든 월에서 삭제하고 실행 취소로 
   assert.deepEqual(store.getState().data, saved);
   assert.deepEqual(readSaved(memory.read()!), saved);
   stop();
+});
+
+test("v1 전환 범위는 최초 복원 때 저장하고 다음 달에 늘리지 않는다", () => {
+  const employee = { id: "legacy", name: "김지우", color: "#5686D6", from: "2026-01" };
+  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), version: 1, employees: [employee] }));
+  const first = createPlannerStore();
+  const stopFirst = connectPlannerStorage(first, () => memory.storage, NOW);
+  assert.equal(memory.writes.length, 1);
+  assert.equal(first.getState().data.employees[0].legacyOffThrough, "2026-10");
+  stopFirst();
+  const second = createPlannerStore();
+  const stopSecond = connectPlannerStorage(second, () => memory.storage, new Date(2026, 10, 8));
+  assert.equal(memory.writes.length, 1);
+  assert.equal(getAssignment(second.getState().data, "2026-11-01", employee.id).category, "unassigned");
+  stopSecond();
 });

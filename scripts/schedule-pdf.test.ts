@@ -8,7 +8,7 @@ import { saveScheduleEditor } from "../lib/schedule-commands";
 const employee = { id: "employee", name: "김지우", color: "#5686D6", from: "2026-05" };
 const base = (): Schedule => ({ ...structuredClone(initial), employees: [employee] });
 
-test("PDF는 선택한 월의 모든 직원과 네 종류의 횟수, 공휴일을 포함한다", () => {
+test("PDF는 선택한 월의 모든 직원과 다섯 종류의 횟수, 공휴일을 포함한다", () => {
   let data = assign(base(), "2026-05-01", employee.id, { category: "work", shift: initial.types[0] });
   data = assign(data, "2026-05-02", employee.id, { category: "leave" });
   data = assign(data, "2026-05-03", employee.id, { category: "other", memo: "외부 지원" });
@@ -21,7 +21,7 @@ test("PDF는 선택한 월의 모든 직원과 네 종류의 횟수, 공휴일�
   assert.equal(output.filename, "shiftfit-2026-05.pdf");
   assert.equal(output.target, 9);
   assert.equal(output.employees.length, 1);
-  assert.deepEqual(output.employees[0].counts, { work: 1, off: 28, leave: 1, other: 1 });
+  assert.deepEqual(output.employees[0].counts, { work: 1, off: 0, leave: 1, other: 1, unassigned: 28 });
   const days = output.calendars[0].weeks.flat();
   assert.equal(days.find((day) => day.date === "2026-05-05")?.holiday, "어린이날");
   assert.equal(days.find((day) => day.date === "2026-05-03")?.rows[0].assignment.memo, "외부 지원");
@@ -52,7 +52,7 @@ test("직원이 많으면 그룹을 나누되 매일 모든 이름을 한 번씩
   assert.equal(firstDayRows.length, 19);
   assert.equal(new Set(firstDayRows.map((row) => row.employee.id)).size, 19);
   assert.equal(output.employees.length, 19);
-  assert.ok(output.employees.every((person) => person.counts.off === 31));
+  assert.ok(output.employees.every((person) => person.counts.unassigned === 31));
 });
 
 test("출력할 직원이나 올바른 월이 없으면 PDF 생성을 거부한다", () => {
