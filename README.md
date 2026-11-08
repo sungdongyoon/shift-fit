@@ -13,6 +13,7 @@
 | 오른쪽 · 근무 설정 | 월 기준 휴무 횟수 설정, 직원별 횟수 확인 |
 | 오른쪽 · 근무자 목록 | 이름·고유 색상 등록, 검색, 정보 수정, 개인 일정 강조 |
 
+- **계정 인증**: 이메일·비밀번호 회원가입, 이메일 인증, 로그인·로그아웃, 비밀번호 재설정을 제공합니다. 로그인한 사용자만 근무표 화면에 접근합니다.
 - **직원마다 하루 하나의 일정**: 근무·휴무·연차·기타·미배정 중 하나를 선택합니다. 근무자는 이전·이후 모든 월에 표시되며, 일정이 없는 날짜는 미배정으로 시작합니다. 휴무는 직접 선택해 저장하며, 미배정과 별도로 집계합니다.
 - **월별 휴무 확인**: 기본 기준은 직원당 월 8회이며, 월별로 변경할 수 있습니다. 휴무 횟수가 기준과 다르면 빨간색과 굵은 글씨로 표시합니다. 연차와 기타는 휴무 횟수에 포함하지 않습니다.
 - **읽기 쉬운 근무표**: 캘린더에는 직원 이름을 표시하고, 근무 타입의 색상으로 일정을 구분합니다. 근무는 시작 시간순으로, 같은 시간이면 이름순으로 정렬합니다. 근무 외 일정은 뒤에 표시합니다.
@@ -28,12 +29,14 @@
 
 ## 시작하기
 
-Node.js와 npm이 필요합니다. 개발 환경은 Node.js 24를 기준으로 맞추는 것을 권장하며, 의존성은 `package-lock.json`을 사용해 설치합니다. 별도 환경 변수나 공휴일 API 키 설정은 필요하지 않습니다.
+Node.js 22 이상과 npm이 필요합니다. 개발 환경은 Node.js 24를 권장하며 의존성은 `package-lock.json`을 사용해 설치합니다. 인증에는 Supabase 환경 설정이 필요하며 공휴일 API 키는 필요하지 않습니다.
 
 ```bash
 git clone https://github.com/sungdongyoon/shift-fit.git shiftfit
 cd shiftfit
 npm ci
+cp .env.example .env.local
+# .env.local에 Supabase 공개 연결 정보를 입력합니다.
 npm run dev
 ```
 
@@ -57,6 +60,27 @@ macOS의 `Desktop` 아래에 있는 프로젝트는 `npm run dev` 실행 시 로
 
 의존성을 변경한 뒤에는 `npm run dev`를 실행해 캐시와 연결을 갱신한 다음 빌드합니다. 바탕화면 이외의 경로와 다른 운영체제에서는 일반적인 설치·실행 방식을 사용합니다. 이 스크립트가 소스 폴더의 iCloud 동기화 설정을 변경하지는 않습니다.
 
+## 인증 설정
+
+`.env.local`에 아래 값을 설정합니다. 실제 연결 정보는 Git에 커밋하지 않습니다.
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+- Supabase Authentication에서 이메일 가입과 이메일 인증을 활성화합니다.
+- URL Configuration의 Site URL을 `http://localhost:3000`으로 설정합니다.
+- Redirect URLs에 `http://localhost:3000/auth/callback`과 `http://localhost:3000/auth/callback?next=/update-password`를 추가합니다.
+- 기본 메일 템플릿은 PKCE 콜백을 사용합니다. 별도로 TokenHash 템플릿을 사용하는 경우 가입 링크는 `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`, 재설정 링크는 `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`를 사용합니다.
+- 배포할 때는 Site URL 환경 변수와 Supabase 허용 URL을 실제 HTTPS 도메인으로 변경합니다. 인증 페이지는 연결 설정 전에도 표시되며 폼 제출은 비활성화합니다.
+- 일반 고객에게 이메일을 보내려면 Supabase의 기본 테스트 메일 발송 제한을 확인하고 별도 SMTP를 설정합니다. 비밀 키나 service_role 키는 사용하지 않습니다.
+
+`/login`, `/signup`, `/forgot-password`, `/update-password`에서 인증 화면을 확인할 수 있습니다. 회원가입 후 이메일 링크로 인증하고, 비밀번호 변경 후에는 현재 세션을 종료해 새 비밀번호로 로그인합니다. 만료되거나 잘못된 링크는 오류 안내와 함께 로그인 화면으로 돌아갑니다.
+
+근무표는 아직 기존 브라우저 저장 공간을 사용합니다. 계정별 서버 저장·기기 간 동기화·기존 데이터 이관 확인은 추가하지 않았습니다. 같은 브라우저 프로필에서는 로그인 계정과 관계없이 기존 임시 근무표가 표시될 수 있으므로 실제 고객 데이터 운영 전에는 DB 분리 작업이 필요합니다. 결제·일회성 구매 권한과 계정당 매장 제한도 이번 인증 범위에 포함하지 않습니다.
+
 ## 사용 흐름
 
 1. 오른쪽 근무자 목록의 `+` 버튼으로 직원 이름과 고유 색상을 등록합니다.
@@ -71,7 +95,7 @@ macOS의 `Desktop` 아래에 있는 프로젝트는 `npm run dev` 실행 시 로
 근무표는 `shiftfit.schedule.v1` 키로 **현재 브라우저의 localStorage**에 저장합니다. 직원, 근무 타입, 날짜별 배정, 월별 휴무 기준을 저장하며, 검색어나 편집 중인 입력은 저장하지 않습니다.
 
 - 별도 저장 버튼·월별 버전 기록·읽기 전용 조회 기능은 제거했습니다. 해당 기능은 DB 전환 이후 다시 검토하며 현재는 브라우저 자동 저장만 제공합니다. 이전에 생성한 저장 기록 필드는 기존 로컬 데이터에서 강제로 삭제하지 않지만 화면 조회 기능은 제공하지 않습니다.
-- 로그인, 서버 데이터베이스, 기기 간 동기화, 여러 사용자의 공동 편집은 구현하지 않았습니다.
+- 로그인은 Supabase Auth를 사용합니다. 근무표 서버 데이터베이스, 기기 간 동기화, 여러 사용자의 공동 편집은 구현하지 않았습니다.
 - 브라우저·접속 주소·포트가 달라지면 저장 공간도 달라집니다. 브라우저 사이트 데이터를 지우면 근무표도 삭제됩니다.
 - 저장 데이터를 복원할 수 없으면 원본을 덮어쓰지 않도록 자동 저장을 중단하고, 기존 데이터 내려받기를 제공합니다. 저장소 접근이 차단된 경우에는 내려받기도 실패할 수 있습니다.
 - PDF 내보내기를 제공합니다. 편집 가능한 근무표 데이터의 가져오기·내보내기 기능은 아직 없습니다.
@@ -97,7 +121,8 @@ macOS의 `Desktop` 아래에 있는 프로젝트는 `npm run dev` 실행 시 로
 | UI | React 19.3.0 · TypeScript · React Icons |
 | 스타일 | Tailwind CSS 4 · DDS 디자인 토큰 및 공용 컴포넌트 |
 | 상태 관리 | Zustand 5 · 편집 폼의 React reducer |
-| 저장 | 브라우저 localStorage |
+| 인증 | Supabase Auth · @supabase/ssr · 쿠키 기반 서버 인증 |
+| 근무표 저장 | 브라우저 localStorage |
 | 검사 | ESLint 9 · TypeScript · Node.js 테스트 러너 및 tsx |
 
 정확한 의존성 버전은 `package.json`과 `package-lock.json`에서 확인할 수 있습니다.
@@ -153,7 +178,7 @@ scripts/                     개발 런타임·복사본 검사·테스트
 
 개발 서버 시작과 빌드 전에 복사본 검사를 자동으로 실행합니다. `clean:duplicates`는 원본 유무를 기준으로 삭제하므로, 복사본에 필요한 수정 사항이 있는지 먼저 확인합니다.
 
-현재 53개 테스트에서 근무표 규칙, 저장 호환성, Strict Mode, 실행 취소, 공휴일, 월 경계·윤년, 예시 데이터 보존, 로컬 런타임, 복사본 정리 안전성을 확인합니다.
+현재 60개 테스트에서 인증 입력·성공·실패·재설정 권한, 근무표 규칙, 저장 호환성, Strict Mode, 실행 취소, 공휴일, 월 경계·윤년, 예시 데이터 보존, 로컬 런타임, 복사본 정리 안전성을 확인합니다.
 
 기능별 수정 위치와 내부 구현 설명은 [IMPLEMENTATION.md](IMPLEMENTATION.md), 코드 작성 규칙은 [AGENTS.md](AGENTS.md)를 참고합니다.
 

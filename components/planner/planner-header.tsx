@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Glyph } from "./glyph";
 
-export const PlannerHeader = () => (
+export const PlannerHeader = ({ email }: { email: string }) => (
   <header className="flex h-[76px] items-center gap-[72px] border-b border-line bg-canvas px-10 max-[1200px]:gap-10 max-[1200px]:px-6 max-[640px]:h-16 max-[640px]:gap-6 max-[640px]:px-4">
     <Link
       className="flex items-center gap-[9px] text-[27px] font-extrabold tracking-[-1.5px] text-content no-underline max-[640px]:text-[23px]"
@@ -16,6 +17,10 @@ export const PlannerHeader = () => (
         BETA
       </span> */}
     </Link>
+    <div className="ml-auto flex min-w-0 items-center gap-3">
+      <span title={email} className="max-w-56 truncate text-xs text-content-secondary max-[640px]:hidden">{email}</span>
+      <SignOutButton />
+    </div>
     {/* <nav
       aria-label="주 메뉴"
       className="flex self-stretch items-stretch max-[640px]:text-[11px]"
