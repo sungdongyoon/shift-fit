@@ -13,20 +13,41 @@ import {
   type PlannerStore,
   type PlannerStoreApi,
 } from "@/stores/planner-store";
-import { connectPlannerStorage } from "@/stores/planner-storage";
+import { buildPlannerChanges } from "@/lib/planner-data";
+import { loadPlanner, savePlanner } from "@/app/planner/actions";
+import { hasUnsavedChanges } from "@/stores/planner-store";
+import { UnsavedChangesDialog } from "@/components/planner/unsaved-changes-dialog";
 
 const PlannerContext = createContext<PlannerStoreApi | null>(null);
 
-export const PlannerProvider = ({ children }: { children: ReactNode; }) => {
-  const [store] = useState(createPlannerStore);
-
-  useEffect(
-    () => connectPlannerStorage(store, () => window.localStorage),
-    [store],
+export const PlannerProvider = ({ children }: { children: ReactNode }) => {
+  const [store] = useState(() =>
+    createPlannerStore({
+      load: loadPlanner,
+      save: (data, revision, baseline) =>
+        savePlanner(buildPlannerChanges(data, baseline), revision),
+    }),
   );
 
+  useEffect(() => {
+    void store.getState().loadSchedule();
+
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges(store.getState())) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [store]);
+
   return (
-    <PlannerContext.Provider value={store}>{children}</PlannerContext.Provider>
+    <PlannerContext.Provider value={store}>
+      {children}
+      <UnsavedChangesDialog />
+    </PlannerContext.Provider>
   );
 };
 

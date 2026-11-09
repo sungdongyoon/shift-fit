@@ -9,7 +9,7 @@ export const OffTargetSettings = () => {
   const target = usePlannerStore(
     (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading");
+  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
   const setOffTarget = usePlannerStore((state) => state.setOffTarget);
   const days = month ? daysInMonth(month) : 31;
 

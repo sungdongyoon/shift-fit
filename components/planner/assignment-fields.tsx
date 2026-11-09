@@ -91,6 +91,7 @@ export const AssignmentFields = ({
           label="기타 메모"
           placeholder="예: 교육, 외부 지원"
           value={editor.memo ?? ""}
+          maxLength={200}
           onChange={(event) => onChange({ ...editor, memo: event.target.value })}
         />
       )}

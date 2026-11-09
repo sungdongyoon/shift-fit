@@ -1,41 +1,33 @@
 "use client";
 
 import { usePlannerStore } from "@/providers/planner-provider";
-import { STORAGE_KEY } from "@/stores/planner-storage";
 
 export const StorageAlert = () => {
-  const blocked = usePlannerStore((state) => state.storageStatus === "blocked");
-  const notify = usePlannerStore((state) => state.notify);
+  const status = usePlannerStore((state) => state.storageStatus);
+  const error = usePlannerStore((state) => state.persistenceError);
+  const reload = usePlannerStore((state) => state.loadSchedule);
+  const requestLeave = usePlannerStore((state) => state.requestLeave);
 
-  const download = () => {
-    try {
-      const blob = new Blob([localStorage.getItem(STORAGE_KEY) ?? ""], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "shiftfit-backup.json";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      notify(
-        "기존 데이터를 내려받지 못했어요. 브라우저 저장소 접근을 확인해 주세요.",
-      );
-    }
-  };
+  if (!error) return null;
 
-  if (!blocked) return null;
+  const reloadLatest = () =>
+    requestLeave("최신 근무표 다시 불러오기", () => void reload());
 
   return (
     <div
-      className="mb-4 rounded-control bg-danger-subtle px-4 py-3 text-xs/normal text-danger"
       role="alert"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-control bg-danger-subtle px-4 py-3 text-xs/normal text-danger"
     >
-      기존 저장 데이터를 읽지 못했어요. 덮어쓰기를 막기 위해 자동 저장을
-      멈췄어요.
-      <button onClick={download} className="ml-2.5 underline">
-        기존 데이터 내려받기
+      <span>
+        {error}
+        {status === "failed" && " 작성한 내용은 화면에 유지돼요."}
+      </span>
+      <button
+        type="button"
+        onClick={reloadLatest}
+        className="shrink-0 underline underline-offset-2"
+      >
+        {status === "blocked" ? "다시 불러오기" : "최신 근무표 불러오기"}
       </button>
     </div>
   );

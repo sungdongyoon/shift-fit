@@ -99,7 +99,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
           취소
         </Button>
         <Button type="submit" size="sm" className="text-xs/normal">
-          저장
+          적용
         </Button>
       </div>
     </form>

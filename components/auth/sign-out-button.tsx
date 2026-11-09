@@ -1,6 +1,7 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useRef, type FormEvent } from "react";
+import { usePlannerStore } from "@/providers/planner-provider";
 import { useFormStatus } from "react-dom";
 import { signOut } from "@/app/auth/actions";
 
@@ -19,8 +20,26 @@ const SubmitButton = () => {
 };
 
 export const SignOutButton = () => {
+  const requestLeave = usePlannerStore((state) => state.requestLeave);
+  const allowSubmit = useRef(false);
+
   const confirmSignOut = (event: FormEvent<HTMLFormElement>) => {
-    if (!window.confirm("로그아웃 하시겠습니까?")) event.preventDefault();
+    if (allowSubmit.current) {
+      allowSubmit.current = false;
+
+      return;
+    }
+    event.preventDefault();
+
+    if (!window.confirm("로그아웃 하시겠습니까?")) return;
+
+    const form = event.currentTarget;
+    requestLeave("로그아웃", () =>
+      queueMicrotask(() => {
+        allowSubmit.current = true;
+        form.requestSubmit();
+      }),
+    );
   };
 
   return (

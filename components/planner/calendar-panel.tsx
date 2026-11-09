@@ -5,6 +5,7 @@ import { useHolidays } from "@/hooks/use-holidays";
 import { useMonthCalendar } from "@/hooks/use-month-schedule";
 import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { SavePlannerButton } from "./save-planner-button";
 import { PdfExportButton } from "./pdf-export-button";
 import { CalendarGrid } from "./calendar-grid";
 import { Glyph } from "./glyph";
@@ -21,7 +22,7 @@ export const CalendarPanel = () => {
 
   const { holidays, status: holidayStatus, retry } = useHolidays(year);
 
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading");
+  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
   const selected = usePlannerStore((state) => state.view.selected);
   const hasEmployees = usePlannerStore(
     (state) => state.data.employees.length > 0,
@@ -72,7 +73,10 @@ export const CalendarPanel = () => {
             오늘
           </button>
         </div>
-        <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SavePlannerButton />
+          <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
+        </div>
       </div>
       {showHolidayNotice && (
         <div

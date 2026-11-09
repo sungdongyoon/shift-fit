@@ -1,3 +1,4 @@
+import type { PlannerPersistence } from "../lib/planner-data";
 import { createStore } from "zustand/vanilla";
 import type { Editor } from "../lib/editor";
 import {
@@ -7,6 +8,7 @@ import {
   saveScheduleEditor,
 } from "../lib/schedule-commands";
 import {
+  dateKey,
   daysInMonth,
   DEFAULT_OFF_TARGET,
   getAssignment,
@@ -27,7 +29,12 @@ type ToastState = {
   undo?: Schedule;
 } | null;
 
-export type StorageStatus = "loading" | "saved" | "blocked" | "failed";
+export type StorageStatus =
+  | "loading"
+  | "saved"
+  | "saving"
+  | "blocked"
+  | "failed";
 
 export type PlannerState = {
   data: Schedule;
@@ -35,9 +42,18 @@ export type PlannerState = {
   editor: Editor | null;
   toast: ToastState;
   storageStatus: StorageStatus;
+  baseline: Schedule;
+  revision: number;
+  persistenceError: string | null;
+  conflict: boolean;
+  pendingNavigation: { label: string; proceed: () => void } | null;
 };
 
 type PlannerActions = {
+  loadSchedule: (now?: Date) => Promise<void>;
+  saveSchedule: () => Promise<boolean>;
+  requestLeave: (label: string, proceed: () => void) => void;
+  resolveNavigation: (choice: "save" | "discard" | "cancel") => Promise<void>;
   openEditor: (editor: Editor) => void;
   closeEditor: () => void;
   addAssignment: (date: string) => void;
@@ -59,13 +75,27 @@ type PlannerActions = {
 export type PlannerStore = PlannerState & PlannerActions;
 
 // Created by the provider, never shared between server requests or workspaces.
-export const createPlannerStore = () =>
+export const hasUnsavedChanges = (
+  state: Pick<PlannerState, "data" | "baseline">,
+) =>
+  state.data !== state.baseline &&
+  JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+
+export const createPlannerStore = (persistence?: PlannerPersistence) =>
   createStore<PlannerStore>()((set, get) => {
+    const original = structuredClone(initial);
+    let loadRequest: Promise<void> | null = null;
+
+    const editable = () =>
+      get().storageStatus !== "loading" && get().storageStatus !== "blocked";
+
     const commit = (
       data: Schedule,
       message: string,
       extra: Partial<PlannerState> = {},
     ) => {
+      if (!editable()) return;
+
       set((state) => ({
         data,
         toast: { message, undo: state.data },
@@ -74,16 +104,154 @@ export const createPlannerStore = () =>
     };
 
     return {
-      data: structuredClone(initial),
+      data: original,
+      baseline: original,
+      revision: 0,
+      persistenceError: null,
+      conflict: false,
+      pendingNavigation: null,
       view: { month: "", today: "", selected: "" },
       editor: null,
       toast: null,
       storageStatus: "loading",
+      loadSchedule: (now = new Date()) => {
+        if (loadRequest) return loadRequest;
+        if (get().storageStatus === "saving" || hasUnsavedChanges(get()))
+          return Promise.resolve();
+
+        const month = monthKey(now.getFullYear(), now.getMonth());
+        set((state) => ({
+          storageStatus: "loading",
+          persistenceError: null,
+          view: state.view.month
+            ? state.view
+            : { month, today: dateKey(month, now.getDate()), selected: "" },
+        }));
+        loadRequest = (async () => {
+          try {
+            if (!persistence) throw new Error("저장소 연결이 필요해요.");
+            const result = await persistence.load();
+
+            if (!result.ok) {
+              set({ storageStatus: "blocked", persistenceError: result.error });
+
+              return;
+            }
+
+            set({
+              data: result.value.data,
+              baseline: result.value.data,
+              revision: result.value.revision,
+              storageStatus: "saved",
+              persistenceError: null,
+              conflict: false,
+              editor: null,
+              toast: null,
+            });
+          } catch {
+            set({
+              storageStatus: "blocked",
+              persistenceError:
+                "근무표를 불러오지 못했어요. 다시 시도해 주세요.",
+            });
+          }
+        })().finally(() => {
+          loadRequest = null;
+        });
+
+        return loadRequest;
+      },
+      saveSchedule: async () => {
+        const state = get();
+
+        if (
+          !editable() ||
+          state.storageStatus === "saving" ||
+          state.conflict ||
+          !hasUnsavedChanges(state)
+        )
+          return false;
+
+        const snapshot = state.data;
+        set({ storageStatus: "saving", persistenceError: null });
+
+        try {
+          if (!persistence) throw new Error("저장소 연결이 필요해요.");
+          const result = await persistence.save(snapshot, state.revision, state.baseline);
+
+          if (!result.ok) {
+            set({
+              storageStatus: "failed",
+              persistenceError: result.error,
+              conflict: Boolean(result.conflict),
+            });
+
+            return false;
+          }
+
+          // Keep edits made while this request was pending; only this snapshot became saved.
+          set((current) => {
+            const remaining = hasUnsavedChanges({ data: current.data, baseline: snapshot });
+
+            return {
+              baseline: snapshot,
+              revision: result.value,
+              storageStatus: "saved",
+              persistenceError: null,
+              toast: remaining
+                ? { ...current.toast, message: "요청한 내용은 저장됐어요. 추가 편집은 한 번 더 저장해 주세요." }
+                : { message: "근무표를 저장했어요." },
+            };
+          });
+
+          return true;
+        } catch {
+          set({
+            storageStatus: "failed",
+            persistenceError:
+              "저장하지 못했어요. 작성 내용은 유지돼요. 다시 저장해 주세요.",
+          });
+
+          return false;
+        }
+      },
+      requestLeave: (label, proceed) => {
+        if (get().storageStatus === "saving") {
+          get().notify("저장이 끝난 뒤 이동해 주세요.");
+
+          return;
+        }
+        if (hasUnsavedChanges(get())) {
+          set({ pendingNavigation: { label, proceed } });
+
+          return;
+        }
+        proceed();
+      },
+      resolveNavigation: async (choice) => {
+        const pending = get().pendingNavigation;
+
+        if (!pending || get().storageStatus === "saving") return;
+        if (choice === "cancel") {
+          set({ pendingNavigation: null });
+
+          return;
+        }
+        if (choice === "save") {
+          if (!(await get().saveSchedule()) || hasUnsavedChanges(get())) return;
+        } else {
+          set((state) => ({ data: state.baseline, editor: null, toast: null }));
+        }
+        set({ pendingNavigation: null });
+        pending.proceed();
+      },
       openEditor: (editor) => {
-        if (get().storageStatus !== "loading") set({ editor });
+        if (editable()) set({ editor });
       },
       closeEditor: () => set({ editor: null }),
       addAssignment: (date) => {
+        if (!editable()) return;
+
         const { data, view, notify, openEditor } = get();
         const employees = data.employees;
         if (!employees.length) {
@@ -92,8 +260,12 @@ export const createPlannerStore = () =>
           return;
         }
 
-        const types = getMonthShiftTypes(data, view.month).filter((type) => !type.archived);
-        const selectedEmployee = employees.find((employee) => employee.id === view.selected);
+        const types = getMonthShiftTypes(data, view.month).filter(
+          (type) => !type.archived,
+        );
+        const selectedEmployee = employees.find(
+          (employee) => employee.id === view.selected,
+        );
 
         openEditor({
           kind: "assignment",
@@ -104,6 +276,8 @@ export const createPlannerStore = () =>
         });
       },
       editAssignment: (date, employee) => {
+        if (!editable()) return;
+
         const { data, view, openEditor } = get();
         const assignment = getAssignment(data, date, employee);
         openEditor({
@@ -112,12 +286,17 @@ export const createPlannerStore = () =>
           employee,
           category: assignment.category,
           memo: assignment.memo ?? "",
-          typeId: assignment.shift?.id ??
-            getMonthShiftTypes(data, view.month).find((type) => !type.archived)?.id ?? "",
+          typeId:
+            assignment.shift?.id ??
+            getMonthShiftTypes(data, view.month).find((type) => !type.archived)
+              ?.id ??
+            "",
           original: true,
         });
       },
       saveEditor: (editor) => {
+        if (!editable()) return "근무표를 불러온 뒤 수정해 주세요.";
+
         const { data, view } = get();
         const result = saveScheduleEditor(data, view.month, editor);
         if (!result.ok) return result.error;
@@ -126,6 +305,8 @@ export const createPlannerStore = () =>
         return null;
       },
       removeEditor: (editor) => {
+        if (!editable()) return;
+
         const { data, view } = get();
         const result = removeScheduleEditor(data, view.month, editor);
         commit(result.data, result.message, {
@@ -140,22 +321,28 @@ export const createPlannerStore = () =>
         if (!view.month) return;
         const [year, month] = view.month.split("-").map(Number);
         const date = new Date(year, month - 1 + delta, 1);
-        set({
-          view: {
-            ...view,
-            month: monthKey(date.getFullYear(), date.getMonth()),
-            selected: "",
-          },
-        });
+        const target = monthKey(date.getFullYear(), date.getMonth());
+        get().requestLeave("월 이동", () =>
+          set((state) => ({
+            view: { ...state.view, month: target, selected: "" },
+            editor: null,
+            toast: null,
+          })),
+        );
       },
-      goToToday: () =>
-        set((state) => ({
-          view: {
-            ...state.view,
-            month: state.view.today.slice(0, 7),
-            selected: "",
-          },
-        })),
+      goToToday: () => {
+        const month = get().view.today.slice(0, 7);
+
+        if (!month || month === get().view.month) return;
+
+        get().requestLeave("오늘로 이동", () =>
+          set((state) => ({
+            view: { ...state.view, month, selected: "" },
+            editor: null,
+            toast: null,
+          })),
+        );
+      },
       selectEmployee: (employee) =>
         set((state) => ({
           view: {
@@ -166,6 +353,8 @@ export const createPlannerStore = () =>
       clearSelection: () =>
         set((state) => ({ view: { ...state.view, selected: "" } })),
       setOffTarget: (target) => {
+        if (!editable()) return;
+
         const { data, view } = get();
         if (
           !view.month ||
@@ -183,6 +372,8 @@ export const createPlannerStore = () =>
         );
       },
       copyPreviousMonthTypes: () => {
+        if (!editable()) return;
+
         const { data, view, notify } = get();
 
         if (!view.month) return;
@@ -198,6 +389,8 @@ export const createPlannerStore = () =>
         commit(result.data, result.message);
       },
       loadExample: () => {
+        if (!editable()) return;
+
         const { data, view } = get();
         if (!view.month || data.employees.length) return;
         commit(
@@ -209,6 +402,8 @@ export const createPlannerStore = () =>
         set((state) => ({ toast: { ...state.toast, message } })),
       dismissToast: () => set({ toast: null }),
       undoLastChange: () => {
+        if (!editable()) return;
+
         const { toast, view } = get();
         const previous = toast?.undo;
 

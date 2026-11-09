@@ -14,7 +14,7 @@ export const EmployeeList = () => {
 
   const [search, setSearch] = useState("");
 
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading");
+  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
   const openEditor = usePlannerStore((state) => state.openEditor);
 
   const searchTerm = search.trim();

@@ -4,6 +4,7 @@ import { usePlannerStore } from "@/providers/planner-provider";
 
 const messages = {
   loading: "불러오는 중",
+  saving: "저장 중",
   saved: "모든 변경사항 저장됨",
   blocked: "저장 데이터를 확인해 주세요",
   failed: "저장 실패 · 브라우저 저장 공간을 확인하세요",

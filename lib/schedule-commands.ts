@@ -152,7 +152,7 @@ const saveAssignment = (
       ...(editor.category === "work" ? { shift } : {}),
       ...(editor.category === "other" && memo ? { memo } : {}),
     }),
-    message: "배정을 저장했어요.",
+    message: "배정을 적용했어요. 상단 저장 버튼으로 저장해 주세요.",
   };
 };
 
@@ -221,9 +221,9 @@ export const createExampleSchedule = (
   const availableTypes = getMonthShiftTypes(data, month).filter((type) => !type.archived);
   const exampleTypes = availableTypes.length
     ? availableTypes
-    : DEFAULT_SHIFT_TYPES.map((type) => ({ ...type, id: `demo-${type.id}` }));
+    : DEFAULT_SHIFT_TYPES.map((type) => ({ ...type, id: crypto.randomUUID() }));
   const employees = ["김지우", "이도윤", "박서연", "최하준"].map((name, index) => ({
-    id: `example-${index}`,
+    id: crypto.randomUUID(),
     name,
     color: colors[index],
     from: month,

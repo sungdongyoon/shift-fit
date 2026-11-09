@@ -1,362 +1,313 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createPlannerStore } from "../stores/planner-store";
+import { createPlannerStore, hasUnsavedChanges } from "../stores/planner-store";
 import {
-  connectPlannerStorage,
-  STORAGE_KEY,
-  type PlannerStorage,
-} from "../stores/planner-storage";
-import { DEFAULT_SHIFT_TYPES, counts, getAssignment, initial, readSaved } from "../lib/schedule";
-import { createExampleSchedule } from "../lib/schedule-commands";
-import { editorFormReducer } from "../lib/editor";
+  initial,
+  getAssignment,
+  DEFAULT_SHIFT_TYPES,
+  counts,
+  type Schedule,
+} from "../lib/schedule";
+import { toPlannerPayload, type PlannerPersistence } from "../lib/planner-data";
 
-const NOW = new Date(2026, 9, 26);
+const NOW = new Date(2026, 10, 9);
 
-const makeStorage = (raw: string | null = null) => {
-  const writes: string[] = [];
-  let stored = raw;
-  const storage: PlannerStorage = {
-    getItem: (key) => {
-      assert.equal(key, STORAGE_KEY);
+const setup = (data: Schedule = structuredClone(initial)) => {
+  let remote = structuredClone(data);
+  let revision = 0;
+  let fail = false;
+  let conflict = false;
+  let loads = 0;
+  const writes: Schedule[] = [];
+  const persistence: PlannerPersistence = {
+    load: async () => {
+      loads++;
 
-      return stored;
+      return { ok: true, value: { data: structuredClone(remote), revision } };
     },
-    setItem: (key, value) => {
-      assert.equal(key, STORAGE_KEY);
-      writes.push(value);
-      stored = value;
+    save: async (next, expected) => {
+      writes.push(next);
+      if (fail || conflict) return { ok: false, error: "저장 실패", conflict };
+      assert.equal(expected, revision);
+      remote = structuredClone(next);
+      revision++;
+
+      return { ok: true, value: revision };
     },
   };
+  const store = createPlannerStore(persistence);
 
-  return { storage, writes, read: () => stored };
+  return {
+    store,
+    writes,
+    loads: () => loads,
+    read: () => remote,
+    fail: (value: boolean) => {
+      fail = value;
+    },
+    conflict: (value: boolean) => {
+      conflict = value;
+    },
+  };
 };
 
-test("별도 화면의 Zustand 인스턴스끼리 직원과 월 상태를 공유하지 않는다", () => {
-  const first = createPlannerStore();
-  const second = createPlannerStore();
-  const memory = makeStorage();
-  const stop = connectPlannerStorage(first, () => memory.storage, NOW);
-  first
-    .getState()
-    .saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" });
-  assert.equal(first.getState().data.employees.length, 1);
-  assert.equal(second.getState().data.employees.length, 0);
-  assert.equal(second.getState().view.month, "");
+const addEmployee = (store: ReturnType<typeof createPlannerStore>) => {
+  assert.equal(
+    store
+      .getState()
+      .saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" }),
+    null,
+  );
+
+  return store.getState().data.employees[0];
+};
+
+test("초기 조회는 쓰지 않으며 중복 로딩을 합치고 각 스토어를 분리한다", async () => {
+  const first = setup();
+  const second = setup();
+  await Promise.all([
+    first.store.getState().loadSchedule(NOW),
+    first.store.getState().loadSchedule(NOW),
+  ]);
+  assert.equal(first.loads(), 1);
+  assert.equal(first.writes.length, 0);
+  addEmployee(first.store);
+  assert.equal(second.store.getState().data.employees.length, 0);
   assert.equal(initial.employees.length, 0);
-  stop();
+  assert.equal(first.store.getState().view.month, "2026-11");
 });
 
-test("기존 localStorage 형식을 읽고 UI 조작 없이 데이터 변경당 한 번만 저장한다", () => {
-  const saved = { ...structuredClone(initial), targets: { "2026-10": 9 } };
-  const memory = makeStorage(JSON.stringify(saved));
-  const store = createPlannerStore();
-  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-  assert.deepEqual(store.getState().data, saved);
-  assert.equal(memory.writes.length, 0);
-  store.getState().openEditor({ kind: "employee", name: "", color: "#5686D6" });
-  store.getState().selectEmployee("any");
-  store.getState().notify("UI 알림");
-  store.getState().closeEditor();
-  store.getState().navigateMonth(1);
-  assert.equal(memory.writes.length, 0);
-  store.getState().setOffTarget(7);
-  assert.equal(memory.writes.length, 1);
-  const parsed = JSON.parse(memory.writes[0]);
-  assert.equal(parsed.version, 3);
-  assert.equal(parsed.targets["2026-11"], 7);
-  assert.equal("view" in parsed, false);
-  assert.equal("editor" in parsed, false);
-  assert.equal("state" in parsed, false);
-  stop();
-});
-
-test("Strict Mode의 연결·해제를 반복해도 과거 값으로 복원하거나 중복 저장하지 않는다", () => {
-  const memory = makeStorage();
-  const store = createPlannerStore();
-  const disconnect = connectPlannerStorage(store, () => memory.storage, NOW);
-  store.getState().navigateMonth(1);
-  disconnect();
-  const stop = connectPlannerStorage(
-    store,
-    () => memory.storage,
-    new Date(2026, 11, 1),
-  );
-  assert.equal(store.getState().view.month, "2026-11");
-  store.getState().setOffTarget(10);
-  assert.equal(memory.writes.length, 1);
-  stop();
-  store.getState().setOffTarget(11);
-  assert.equal(memory.writes.length, 1);
-});
-
-test("손상된 원본을 덮어쓰지 않으며 저장소 접근 오류도 처리한다", () => {
-  for (const raw of ["{broken", "null", '{"version":2}']) {
-    const memory = makeStorage(raw);
-    const store = createPlannerStore();
-    const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-    assert.equal(store.getState().storageStatus, "blocked");
-    store.getState().setOffTarget(6);
-    assert.equal(memory.read(), raw);
-    assert.equal(memory.writes.length, 0);
-    stop();
-  }
-  const store = createPlannerStore();
-  const stop = connectPlannerStorage(
-    store,
-    () => {
-      throw new Error("denied");
-    },
-    NOW,
-  );
-  assert.equal(store.getState().storageStatus, "blocked");
-  assert.equal(store.getState().view.month, "2026-10");
-  stop();
-});
-
-test("저장 공간 오류를 표시하고 다음 변경 시 저장을 재시도한다", () => {
-  const store = createPlannerStore();
-  let fail = true;
-  let saved = "";
-  const stop = connectPlannerStorage(
-    store,
-    () => ({
-      getItem: () => null,
-      setItem: (_key, value) => {
-        if (fail) throw new Error("quota");
-        saved = value;
-      },
-    }),
-    NOW,
-  );
+test("편집은 자동 저장하지 않고 저장 버튼 호출 때만 변경 전체를 보낸다", async () => {
+  const { store, writes, read } = setup();
+  await store.getState().loadSchedule(NOW);
+  const employee = addEmployee(store);
   store.getState().setOffTarget(9);
-  assert.equal(store.getState().storageStatus, "failed");
-  fail = false;
-  store.getState().setOffTarget(10);
-  assert.equal(store.getState().storageStatus, "saved");
-  assert.equal(JSON.parse(saved).targets["2026-10"], 10);
-  stop();
-});
-
-test("저장 검증 실패 시 편집을 유지하고 성공·실행 취소는 저장 데이터에 반영된다", () => {
-  const memory = makeStorage();
-  const store = createPlannerStore();
-  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-  const draft = { kind: "employee", name: " ", color: "#5686D6" } as const;
-  store.getState().openEditor(draft);
-  assert.ok(store.getState().saveEditor(draft));
-  assert.equal(store.getState().editor, draft);
-  assert.equal(memory.writes.length, 0);
-  assert.equal(store.getState().saveEditor({ ...draft, name: "김지우" }), null);
-  assert.equal(store.getState().editor, null);
-  assert.equal(store.getState().data.employees.length, 1);
-  assert.equal(memory.writes.length, 1);
-  store.getState().undoLastChange();
-  assert.equal(store.getState().data.employees.length, 0);
-  assert.equal(JSON.parse(memory.read()!).employees.length, 0);
-  assert.equal(store.getState().toast?.undo, undefined);
-  stop();
-});
-
-test("타입 수정은 기존 배정에 반영되고 삭제 후에도 마지막 배정을 다시 저장할 수 있다", () => {
-  const store = createPlannerStore();
-  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), typesByMonth: { "2026-10": structuredClone(DEFAULT_SHIFT_TYPES) } }));
-  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-  store
-    .getState()
-    .saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" });
-  const employee = store.getState().data.employees[0].id;
   store
     .getState()
     .saveEditor({
       kind: "assignment",
-      date: "2026-10-01",
-      employee,
-      category: "work",
-      typeId: "open",
+      date: "2026-11-04",
+      employee: employee.id,
+      category: "other",
+      typeId: "",
+      memo: "교육",
     });
-  const original = structuredClone(
-    getAssignment(store.getState().data, "2026-10-01", employee),
-  );
-  const type = store.getState().data.typesByMonth["2026-10"][0];
+  assert.equal(writes.length, 0);
+  assert.equal(hasUnsavedChanges(store.getState()), true);
+  assert.equal(await store.getState().saveSchedule(), true);
+  assert.equal(writes.length, 1);
+  assert.equal(store.getState().revision, 1);
+  assert.equal(read().targets["2026-11"], 9);
+  assert.equal(getAssignment(read(), "2026-11-04", employee.id).memo, "교육");
+  assert.equal(hasUnsavedChanges(store.getState()), false);
+  assert.equal(await store.getState().saveSchedule(), false);
+  assert.equal(writes.length, 1);
+});
+
+test("저장 실패와 재시도는 작성 내용과 마지막 저장본을 보존한다", async () => {
+  const { store, writes, fail } = setup();
+  await store.getState().loadSchedule(NOW);
+  const baseline = store.getState().baseline;
+  addEmployee(store);
+  const draft = store.getState().data;
+  fail(true);
+  assert.equal(await store.getState().saveSchedule(), false);
+  assert.equal(store.getState().data, draft);
+  assert.equal(store.getState().baseline, baseline);
+  assert.equal(store.getState().revision, 0);
+  assert.equal(store.getState().storageStatus, "failed");
+  fail(false);
+  assert.equal(await store.getState().saveSchedule(), true);
+  assert.equal(writes.length, 2);
+  assert.equal(hasUnsavedChanges(store.getState()), false);
+});
+
+test("저장 중 새 편집은 지워지지 않으며 중복 저장과 이동은 막는다", async () => {
+  let finish!: (value: { ok: true; value: number }) => void;
+  let calls = 0;
+  const store = createPlannerStore({
+    load: async () => ({
+      ok: true,
+      value: { data: structuredClone(initial), revision: 0 },
+    }),
+    save: async () => {
+      calls++;
+
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  });
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  const submitted = store.getState().data;
+  const pending = store.getState().saveSchedule();
+  store.getState().setOffTarget(9);
+  assert.equal(await store.getState().saveSchedule(), false);
+  store.getState().navigateMonth(1);
+  assert.equal(store.getState().view.month, "2026-11");
+  finish({ ok: true, value: 1 });
+  assert.equal(await pending, true);
+  assert.equal(calls, 1);
+  assert.equal(store.getState().baseline, submitted);
+  assert.equal(store.getState().data.targets["2026-11"], 9);
+  assert.equal(hasUnsavedChanges(store.getState()), true);
+  assert.ok(store.getState().toast?.undo);
+  store.getState().undoLastChange();
+  assert.equal(hasUnsavedChanges(store.getState()), false);
+});
+
+test("미저장 월 이동은 계속 작성·저장 후 이동을 구분하고 실패 시 이동하지 않는다", async () => {
+  const { store, fail } = setup();
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  store.getState().navigateMonth(1);
+  assert.ok(store.getState().pendingNavigation);
+  assert.equal(store.getState().view.month, "2026-11");
+  await store.getState().resolveNavigation("cancel");
+  assert.equal(store.getState().pendingNavigation, null);
+  assert.equal(store.getState().data.employees.length, 1);
+  store.getState().navigateMonth(1);
+  fail(true);
+  await store.getState().resolveNavigation("save");
+  assert.equal(store.getState().view.month, "2026-11");
+  assert.ok(store.getState().pendingNavigation);
+  fail(false);
+  await store.getState().resolveNavigation("save");
+  assert.equal(store.getState().view.month, "2026-12");
+  assert.equal(store.getState().pendingNavigation, null);
+  assert.equal(hasUnsavedChanges(store.getState()), false);
+});
+
+test("저장하지 않고 이동하면 전역 직원과 월별 수정 모두 마지막 저장본으로 돌아간다", async () => {
+  const { store, writes } = setup();
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  store.getState().setOffTarget(10);
+  store.getState().navigateMonth(1);
+  await store.getState().resolveNavigation("discard");
+  assert.equal(store.getState().view.month, "2026-12");
+  assert.equal(store.getState().data.employees.length, 0);
+  assert.deepEqual(store.getState().data.targets, {});
+  assert.equal(writes.length, 0);
+});
+
+test("충돌 시 덮어쓰지 않으며 명시적 변경 취소 후에만 최신 내용을 불러온다", async () => {
+  const { store, writes, loads, conflict } = setup();
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  conflict(true);
+  assert.equal(await store.getState().saveSchedule(), false);
+  assert.equal(store.getState().conflict, true);
+  assert.equal(await store.getState().saveSchedule(), false);
+  assert.equal(writes.length, 1);
+  await store.getState().loadSchedule(NOW);
+  assert.equal(loads(), 1);
   store
     .getState()
-    .saveEditor({ kind: "type", ...type, start: "07:00", color: "#000000" });
-  store.getState().undoLastChange();
-  assert.deepEqual(getAssignment(store.getState().data, "2026-10-01", employee), original);
-  store.getState().saveEditor({ kind: "type", ...type, start: "07:00", color: "#000000" });
-  store.getState().removeEditor({ kind: "type", ...type });
-  store.getState().editAssignment("2026-10-01", employee);
-  const assignmentEditor = store.getState().editor;
-  assert.equal(assignmentEditor?.kind, "assignment");
+    .requestLeave(
+      "다시 불러오기",
+      () => void store.getState().loadSchedule(NOW),
+    );
+  await store.getState().resolveNavigation("discard");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(loads(), 2);
+  assert.equal(store.getState().data.employees.length, 0);
+  assert.equal(store.getState().conflict, false);
+});
 
-  if (assignmentEditor?.kind !== "assignment") throw new Error("일정 편집기가 열리지 않았습니다.");
-
-  assert.equal(assignmentEditor.typeId, type.id);
-  assert.equal(
+test("불러오기 실패 상태는 편집을 차단하고 재시도로 회복한다", async () => {
+  let fail = true;
+  const store = createPlannerStore({
+    load: async () =>
+      fail
+        ? { ok: false, error: "연결 실패" }
+        : { ok: true, value: { data: structuredClone(initial), revision: 0 } },
+    save: async () => ({ ok: false, error: "호출되면 안 됨" }),
+  });
+  await store.getState().loadSchedule(NOW);
+  assert.equal(store.getState().storageStatus, "blocked");
+  assert.ok(
     store
       .getState()
-      .saveEditor({
-        kind: "assignment",
-        date: "2026-10-01",
-        employee,
-        category: "work",
-        typeId: type.id,
-      }),
-    null,
+      .saveEditor({ kind: "employee", name: "차단", color: "#5686D6" }),
   );
-  assert.deepEqual(
-    getAssignment(store.getState().data, "2026-10-01", employee),
-    { ...original, shift: { ...type, start: "07:00", color: "#000000" } },
-  );
+  store.getState().loadExample();
+  store.getState().setOffTarget(10);
+  assert.equal(store.getState().data.employees.length, 0);
+  assert.deepEqual(store.getState().data.targets, {});
+  fail = false;
+  await store.getState().loadSchedule(NOW);
+  assert.equal(store.getState().storageStatus, "saved");
+});
+
+test("실행 취소는 미저장 상태와 선택 강조를 되돌리며 저장을 발생시키지 않는다", async () => {
+  const { store, writes } = setup();
+  await store.getState().loadSchedule(NOW);
+  const employee = addEmployee(store);
+  store.getState().selectEmployee(employee.id);
+  store.getState().undoLastChange();
+  assert.equal(store.getState().data.employees.length, 0);
+  assert.equal(store.getState().view.selected, "");
+  assert.equal(hasUnsavedChanges(store.getState()), false);
+  assert.equal(writes.length, 0);
+});
+
+test("타입 삭제는 마지막 배정을 보존하고 직원 삭제는 연결된 일정을 제거한다", async () => {
+  const data = structuredClone(initial);
+  data.typesByMonth["2026-11"] = structuredClone(DEFAULT_SHIFT_TYPES);
+  const { store } = setup(data);
+  await store.getState().loadSchedule(NOW);
+  const employee = addEmployee(store);
   store
     .getState()
-    .removeEditor({
+    .saveEditor({
       kind: "assignment",
-      date: "2026-10-01",
-      employee,
+      date: "2026-11-04",
+      employee: employee.id,
       category: "work",
-      typeId: type.id,
+      typeId: "close",
     });
+  store
+    .getState()
+    .saveEditor({ kind: "type", ...DEFAULT_SHIFT_TYPES[2], end: "22:00" });
+  store.getState().removeEditor({ kind: "type", ...DEFAULT_SHIFT_TYPES[2] });
   assert.equal(
-    getAssignment(store.getState().data, "2026-10-01", employee).category,
-    "off",
+    getAssignment(store.getState().data, "2026-11-04", employee.id).shift?.end,
+    "22:00",
   );
-  stop();
-});
-
-test("휴무 기준은 해당 월 일수 내에서만 허용하고 예시에서도 정확히 적용한다", () => {
-  const store = createPlannerStore();
-  const memory = makeStorage();
-  const stop = connectPlannerStorage(
-    store,
-    () => memory.storage,
-    new Date(2026, 1, 1),
-  );
-  for (const target of [NaN, -1, 29, 8.5])
-    store.getState().setOffTarget(target);
-  assert.equal(memory.writes.length, 0);
-  for (const target of [0, 8, 20, 28]) {
-    const sample = createExampleSchedule(
-      { ...structuredClone(initial), targets: { "2026-02": target } },
-      "2026-02",
-    );
-    sample.employees.forEach((employee) =>
-      assert.equal(counts(sample, "2026-02", employee.id).off, target),
-    );
-  }
-  stop();
-});
-
-test("폼 입력은 오류와 함께 하나의 reducer로 관리하고 변경 시 오래된 오류를 해제한다", () => {
-  const draft = { kind: "employee", name: "", color: "#5686D6" } as const;
-  const invalid = editorFormReducer(
-    { draft, error: "" },
-    { type: "error", message: "이름 필요" },
-  );
-  const next = editorFormReducer(invalid, {
-    type: "change",
-    draft: { ...draft, name: "김지우" },
-  });
-  assert.equal(next.error, "");
-  assert.equal(next.draft.kind === "employee" && next.draft.name, "김지우");
-  assert.equal(invalid.error, "이름 필요");
-});
-
-test("기타 메모는 저장·복원·재편집되고 휴무로 저장하면 제거된다", () => {
-  const store = createPlannerStore();
-  const memory = makeStorage();
-  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-  store.getState().saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" });
-  const employee = store.getState().data.employees[0];
-  const date = "2026-10-01";
-  const draft = {
-    kind: "assignment" as const,
-    date,
-    employee: employee.id,
-    category: "other" as const,
-    typeId: "",
-    memo: "  외부 지원\n교육  ",
-  };
-
-  assert.equal(store.getState().saveEditor(draft), null);
-  const restored = readSaved(memory.read()!);
-  assert.equal(getAssignment(restored, date, employee.id).memo, "외부 지원 교육");
-  store.getState().editAssignment(date, employee.id);
-  const editor = store.getState().editor;
-  assert.equal(editor?.kind, "assignment");
-
-  if (editor?.kind !== "assignment") throw new Error("일정 편집기가 열리지 않았습니다.");
-
-  assert.equal(editor.memo, "외부 지원 교육");
-  assert.equal(store.getState().saveEditor({ ...editor, category: "off" }), null);
-  assert.deepEqual(getAssignment(store.getState().data, date, employee.id), { category: "off" });
-  stop();
-});
-
-test("기록이 있는 직원도 모든 월에서 삭제하고 실행 취소로 함께 복원한다", () => {
-  const employee = { id: "removed", name: "김지우", color: "#5686D6", from: "2026-01" };
-  const retained = { ...employee, id: "retained", name: "이도윤" };
-  const saved = {
-    ...structuredClone(initial),
-    employees: [employee, retained],
-    entries: {
-      "2026-09-04:removed": { category: "work", shift: DEFAULT_SHIFT_TYPES[0] },
-      "2026-10-04:removed": { category: "other", memo: "교육" },
-      "2026-11-04:removed": { category: "leave" },
-      "2026-10-04:retained": { category: "work", shift: DEFAULT_SHIFT_TYPES[1] },
-    },
-  };
-  const memory = makeStorage(JSON.stringify(saved));
-  const store = createPlannerStore();
-  const stop = connectPlannerStorage(store, () => memory.storage, NOW);
-  store.getState().selectEmployee(employee.id);
   store.getState().removeEditor({ kind: "employee", ...employee });
-
-  assert.deepEqual(store.getState().data.employees, [retained]);
-  assert.deepEqual(Object.keys(store.getState().data.entries), ["2026-10-04:retained"]);
-  assert.equal(store.getState().view.selected, "");
-  assert.deepEqual(readSaved(memory.read()!).employees, [retained]);
+  assert.deepEqual(store.getState().data.entries, {});
   store.getState().undoLastChange();
-  assert.deepEqual(store.getState().data, saved);
-  assert.deepEqual(readSaved(memory.read()!), saved);
-  stop();
+  assert.equal(store.getState().data.employees.length, 1);
 });
 
-test("v1 전환 범위는 최초 복원 때 저장하고 다음 달에 늘리지 않는다", () => {
-  const employee = { id: "legacy", name: "김지우", color: "#5686D6", from: "2026-01" };
-  const memory = makeStorage(JSON.stringify({ ...structuredClone(initial), version: 1, types: structuredClone(DEFAULT_SHIFT_TYPES), employees: [employee] }));
-  const first = createPlannerStore();
-  const stopFirst = connectPlannerStorage(first, () => memory.storage, NOW);
-  assert.equal(memory.writes.length, 1);
-  assert.equal(first.getState().data.employees[0].legacyOffThrough, "2026-10");
-  stopFirst();
-  const second = createPlannerStore();
-  const stopSecond = connectPlannerStorage(second, () => memory.storage, new Date(2026, 10, 8));
-  assert.equal(memory.writes.length, 1);
-  assert.equal(getAssignment(second.getState().data, "2026-11-01", employee.id).category, "unassigned");
-  stopSecond();
+test("미배정과 기타 메모는 분리되고 예시 데이터는 UUID로 DB 저장 가능하다", async () => {
+  const { store, writes } = setup();
+  await store.getState().loadSchedule(new Date(2026, 1, 1));
+  store.getState().setOffTarget(8);
+  store.getState().loadExample();
+  const data = store.getState().data;
+  data.employees.forEach((employee) =>
+    assert.equal(counts(data, "2026-02", employee.id).off, 8),
+  );
+  assert.equal(toPlannerPayload(data).employees.length, 4);
+  assert.equal(writes.length, 0);
 });
 
-test("11월에 추가한 직원은 이전·이후 월에도 표시되고 배정할 수 있다", () => {
-  const store = createPlannerStore();
-  const memory = makeStorage();
-  const stop = connectPlannerStorage(store, () => memory.storage, new Date(2026, 10, 8));
-  store.getState().saveEditor({ kind: "employee", name: "전역 직원", color: "#5686D6" });
-  const employee = store.getState().data.employees[0];
-  store.getState().navigateMonth(-1);
-  store.getState().addAssignment("2026-10-04");
-  const editor = store.getState().editor;
-  assert.equal(editor?.kind === "assignment" && editor.employee, employee.id);
-  assert.equal(getAssignment(store.getState().data, "2026-10-04", employee.id).category, "unassigned");
-  assert.equal(store.getState().saveEditor({
-    kind: "assignment", date: "2026-10-04", employee: employee.id, category: "off", typeId: "",
-  }), null);
-  assert.ok(store.getState().saveEditor({ kind: "employee", name: "전역 직원", color: "#5686D6" }));
-  store.getState().navigateMonth(2);
-  store.getState().addAssignment("2026-12-04");
-  assert.equal(store.getState().editor?.kind, "assignment");
-  assert.equal(getAssignment(store.getState().data, "2026-12-04", employee.id).category, "unassigned");
-  assert.equal(getAssignment(readSaved(memory.read()!), "2026-10-04", employee.id).category, "off");
-  assert.deepEqual(store.getState().data.typesByMonth, {});
-  stop();
+test("로그아웃 같은 외부 이동도 저장·취소 선택이 끝난 뒤에만 실행한다", async () => {
+  const { store } = setup();
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  let left = false;
+  store.getState().requestLeave("로그아웃", () => {
+    left = true;
+  });
+  await store.getState().resolveNavigation("cancel");
+  assert.equal(left, false);
+  store.getState().requestLeave("로그아웃", () => {
+    left = true;
+  });
+  await store.getState().resolveNavigation("save");
+  assert.equal(left, true);
 });
