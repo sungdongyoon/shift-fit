@@ -6,6 +6,8 @@ import {
 } from "./editor";
 import {
   assign,
+  isValidDate,
+  isEmployeeVisibleOn,
   colors,
   dateKey,
   daysInMonth,
@@ -96,15 +98,28 @@ const saveEmployee = (
     };
   }
 
+  if (!isValidDate(editor.startDate)) {
+    return { ok: false, error: "올바른 근무 시작일을 입력해 주세요." };
+  }
+
+  const hasEarlierAssignment = editor.id && Object.keys(data.entries).some(
+    (key) => key.endsWith(`:${editor.id}`) && key.slice(0, 10) < editor.startDate,
+  );
+
+  if (hasEarlierAssignment) {
+    return { ok: false, error: "근무 시작일 이전에 배정된 일정이 있어요. 기존 일정 날짜 이전으로 설정해 주세요." };
+  }
+
   const employee: Employee = {
     id: editor.id ?? createId(),
     name,
     color: editor.color,
     from: month,
+    startDate: editor.startDate,
   };
   const employees = editor.id
     ? data.employees.map((item) => (
-      item.id === editor.id ? { ...item, name, color: editor.color } : item
+      item.id === editor.id ? { ...item, name, color: editor.color, startDate: editor.startDate } : item
     ))
     : [...data.employees, employee];
 
@@ -113,7 +128,7 @@ const saveEmployee = (
     data: { ...data, employees },
     message: editor.id
       ? "근무자 정보를 수정했어요."
-      : "근무자를 추가했어요. 모든 월에 표시되고, 일정은 미배정으로 시작해요.",
+      : "근무자를 추가했어요. 근무 시작일부터 미배정으로 표시돼요.",
   };
 };
 
@@ -126,12 +141,14 @@ const saveAssignment = (
     return { ok: false, error: "선택한 월의 일정을 다시 열어 주세요." };
   }
 
-  const hasEmployee = data.employees.some(
-    (employee) => employee.id === editor.employee,
-  );
+  const employee = data.employees.find((item) => item.id === editor.employee);
 
-  if (!hasEmployee) {
+  if (!employee) {
     return { ok: false, error: "배정할 근무자를 선택해 주세요." };
+  }
+
+  if (!isEmployeeVisibleOn(employee, editor.date)) {
+    return { ok: false, error: "근무 시작일 이전에는 일정을 배정할 수 없어요." };
   }
 
   const currentShift = getAssignment(data, editor.date, editor.employee).shift;
@@ -227,6 +244,7 @@ export const createExampleSchedule = (
     name,
     color: colors[index],
     from: month,
+    startDate: `${month}-01`,
   }));
   // Copy the entries once instead of rebuilding the full schedule for every day.
   const entries = { ...data.entries };

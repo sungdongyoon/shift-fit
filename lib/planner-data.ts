@@ -1,5 +1,8 @@
 import {
   DEFAULT_OFF_TARGET,
+  employeeStartDate,
+  isValidDate,
+  isEmployeeVisibleOn,
   daysInMonth,
   initial,
   readSaved,
@@ -13,6 +16,7 @@ type EmployeeRow = {
   name: string;
   color: string;
   registered_month: string;
+  start_date: string;
   sort_order: number;
 };
 type MonthRow = { month: string; off_target: number };
@@ -99,12 +103,14 @@ export const toPlannerPayload = (input: unknown): PlannerPayload => {
       monthPattern.test(employee.from),
       "근무자 등록 월을 확인해 주세요.",
     );
+    requireValue(isValidDate(employeeStartDate(employee)), "근무 시작일을 확인해 주세요.");
     employeeIds.add(employee.id);
     payload.employees.push({
       id: employee.id,
       name: employee.name.trim(),
       color: employee.color,
       registered_month: `${employee.from}-01`,
+      start_date: employeeStartDate(employee),
       sort_order,
     });
   });
@@ -154,6 +160,9 @@ export const toPlannerPayload = (input: unknown): PlannerPayload => {
         new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date,
       "일정 날짜를 확인해 주세요.",
     );
+    const employee = data.employees.find((item) => item.id === employeeId)!;
+    requireValue(isEmployeeVisibleOn(employee, date), "근무 시작일 이전에 배정된 일정이 있어요.");
+
     const shiftId =
       assignment.category === "work" ? assignment.shift?.id : null;
     requireValue(
@@ -213,6 +222,7 @@ export const fromPlannerRows = (input: unknown): PlannerSnapshot => {
     name: employee.name,
     color: employee.color,
     from: employee.registered_month.slice(0, 7),
+    startDate: employee.start_date,
   }));
   rows.months.forEach((row) => {
     const month = row.month.slice(0, 7);

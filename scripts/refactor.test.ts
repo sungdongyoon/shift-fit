@@ -84,14 +84,14 @@ test("일괄 생성한 예시는 원본을 변경하지 않고 기존 배정과 
 test("분리된 편집 명령은 중복 이름을 거부하고 직원 이력을 유지한다", () => {
   const data: Schedule = { ...structuredClone(initial), employees: [employee] };
   const duplicate = saveScheduleEditor(data, "2026-11", {
-    kind: "employee",
+    kind: "employee", startDate: "2026-01-01",
     name: " 김지우 ",
     color: "#5686D6",
   });
   assert.equal(duplicate.ok, false);
 
   const updated = saveScheduleEditor(data, "2026-11", {
-    kind: "employee",
+    kind: "employee", startDate: "2026-01-01",
     id: employee.id,
     name: "변경된 이름",
     color: "#000000",
@@ -134,7 +134,7 @@ test("직원 추가를 실행 취소하면 강조 상태도 해제한다", () =>
   });
   store
     .getState()
-    .saveEditor({ kind: "employee", name: "추가 직원", color: "#5686D6" });
+    .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "추가 직원", color: "#5686D6" });
   store.getState().selectEmployee(store.getState().data.employees[0].id);
   store.getState().undoLastChange();
   assert.equal(store.getState().data.employees.length, 0);

@@ -2,6 +2,8 @@ import { buildMonthCells, compareCalendarRows } from "./calendar";
 import type { HolidayMap } from "./holidays";
 import {
   counts,
+  employeesInMonth,
+  isEmployeeVisibleOn,
   DEFAULT_OFF_TARGET,
   getAssignment,
   getMonthShiftTypes,
@@ -26,7 +28,7 @@ const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[
       ...cell,
       holiday: holidays[cell.date],
       rows: cell.isCurrentMonth
-        ? groupEmployees.map((employee) => ({
+        ? groupEmployees.filter((employee) => isEmployeeVisibleOn(employee, cell.date)).map((employee) => ({
             employee,
             assignment: getAssignment(data, cell.date, employee.id),
           })).sort(compareCalendarRows)
@@ -49,7 +51,7 @@ export const buildSchedulePdfData = (data: Schedule, month: string, holidays: Ho
     throw new Error("출력할 월을 확인해 주세요.");
   }
 
-  const employees = data.employees;
+  const employees = employeesInMonth(data.employees, month);
 
   if (!employees.length) throw new Error("출력할 근무자를 먼저 등록해 주세요.");
 

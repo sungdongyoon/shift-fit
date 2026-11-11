@@ -12,6 +12,7 @@ export type AssignmentEditor = {
 
 export type EmployeeEditor = {
   kind: "employee";
+  startDate: string;
   id?: string;
   name: string;
   color: string;

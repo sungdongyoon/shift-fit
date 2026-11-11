@@ -9,6 +9,7 @@ import {
 } from "../lib/schedule-commands";
 import {
   dateKey,
+  isEmployeeVisibleOn,
   daysInMonth,
   DEFAULT_OFF_TARGET,
   getAssignment,
@@ -253,9 +254,9 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         if (!editable()) return;
 
         const { data, view, notify, openEditor } = get();
-        const employees = data.employees;
+        const employees = data.employees.filter((employee) => isEmployeeVisibleOn(employee, date));
         if (!employees.length) {
-          notify("먼저 우측에서 근무자를 추가해 주세요.");
+          notify("해당 날짜에 근무를 시작한 근무자가 없어요. 근무 시작일을 확인해 주세요.");
 
           return;
         }
@@ -279,6 +280,10 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         if (!editable()) return;
 
         const { data, view, openEditor } = get();
+        const person = data.employees.find((item) => item.id === employee);
+
+        if (!person || !isEmployeeVisibleOn(person, date)) return;
+
         const assignment = getAssignment(data, date, employee);
         openEditor({
           kind: "assignment",

@@ -4,7 +4,7 @@ import { Select } from "@/components/ui/select";
 import { TextField } from "@/components/ui/text-field";
 import { useEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
 import type { AssignmentEditor, Editor } from "@/lib/editor";
-import { categories, getAssignment, labels } from "@/lib/schedule";
+import { categories, getAssignment, isEmployeeVisibleOn, labels } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 type AssignmentFieldsProps = {
@@ -50,7 +50,7 @@ export const AssignmentFields = ({
           label="근무자"
           value={editor.employee}
           onChange={(event) => onChange({ ...editor, employee: event.target.value })}
-          options={employees.map((employee) => ({ value: employee.id, label: employee.name }))}
+          options={employees.filter((employee) => isEmployeeVisibleOn(employee, editor.date)).map((employee) => ({ value: employee.id, label: employee.name }))}
         />
       )}
       <div

@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   assignmentColor,
+  isEmployeeVisibleOn,
   labels,
   defaultAssignment,
   type Employee,
@@ -56,8 +57,9 @@ export const CalendarDay = memo(
             employee,
             assignment: assignments[index],
           }))
+          .filter(({ employee }) => isEmployeeVisibleOn(employee, date))
           .sort(compareCalendarRows),
-      [employees, assignments],
+      [employees, assignments, date],
     );
 
     const monthNumber = Number(date.slice(5, 7));

@@ -55,7 +55,7 @@ const addEmployee = (store: ReturnType<typeof createPlannerStore>) => {
   assert.equal(
     store
       .getState()
-      .saveEditor({ kind: "employee", name: "김지우", color: "#5686D6" }),
+      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "김지우", color: "#5686D6" }),
     null,
   );
 
@@ -230,7 +230,7 @@ test("불러오기 실패 상태는 편집을 차단하고 재시도로 회복�
   assert.ok(
     store
       .getState()
-      .saveEditor({ kind: "employee", name: "차단", color: "#5686D6" }),
+      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "차단", color: "#5686D6" }),
   );
   store.getState().loadExample();
   store.getState().setOffTarget(10);
@@ -276,7 +276,7 @@ test("타입 삭제는 마지막 배정을 보존하고 직원 삭제는 연결�
     getAssignment(store.getState().data, "2026-11-04", employee.id).shift?.end,
     "22:00",
   );
-  store.getState().removeEditor({ kind: "employee", ...employee });
+  store.getState().removeEditor({ kind: "employee", startDate: "2026-01-01", ...employee });
   assert.deepEqual(store.getState().data.entries, {});
   store.getState().undoLastChange();
   assert.equal(store.getState().data.employees.length, 1);

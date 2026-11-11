@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
-import { counts, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
+import { counts, employeesInMonth, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const useEmployees = () =>
@@ -21,10 +21,12 @@ export const useMonthCalendar = () => {
 
   const employees = useEmployees();
 
+  const visibleEmployees = useMemo(() => employeesInMonth(employees, month), [employees, month]);
+
   const cells = useMemo(() => buildMonthCells(month), [month]);
   const [year = 0, monthNumber = 0] = month.split("-").map(Number);
 
-  return { month, year, monthNumber, cells, employees };
+  return { month, year, monthNumber, cells, employees: visibleEmployees };
 };
 
 export const useMonthSchedule = () => {
@@ -44,7 +46,7 @@ export const useMonthSchedule = () => {
     })),
     [entries, month, employees],
   );
-  const mismatch = stats.filter((employee) => employee.counts.off !== target).length;
+  const mismatch = employeesInMonth(stats, month).filter((employee) => employee.counts.off !== target).length;
 
   return { employees, target, stats, mismatch };
 };

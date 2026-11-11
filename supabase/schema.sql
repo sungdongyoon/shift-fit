@@ -15,6 +15,7 @@ create table public.employees (
   name text not null check (char_length(btrim(name)) between 1 and 80),
   color text not null check (color ~ '^#[0-9a-fA-F]{6}$'),
   registered_month date not null check (extract(day from registered_month) = 1),
+  start_date date not null,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -70,6 +71,31 @@ create table public.assignments (
 );
 create index assignments_month on public.assignments(store_id, month);
 create index assignments_shift_type on public.assignments(store_id, month, shift_type_id);
+
+-- Validate the final transaction state so moving a start date and removing earlier
+-- assignments in the same save remains possible. Invoker privileges preserve RLS.
+create function public.check_employee_start_date() returns trigger
+language plpgsql security invoker set search_path = '' as $$
+declare
+  employee_key uuid;
+begin
+  if tg_table_name = 'employees' then employee_key := new.id;
+  else employee_key := new.employee_id; end if;
+  if exists (
+    select 1 from public.assignments a
+    join public.employees e on e.store_id = a.store_id and e.id = a.employee_id
+    where a.store_id = new.store_id and a.employee_id = employee_key and a.work_date < e.start_date
+  ) then raise exception 'ASSIGNMENT_BEFORE_START_DATE' using errcode = '23514'; end if;
+  return null;
+end;
+$$;
+revoke all on function public.check_employee_start_date() from public, anon, authenticated;
+create constraint trigger employee_start_date_check
+  after insert or update on public.employees deferrable initially deferred
+  for each row execute function public.check_employee_start_date();
+create constraint trigger assignment_start_date_check
+  after insert or update on public.assignments deferrable initially deferred
+  for each row execute function public.check_employee_start_date();
 
 alter table public.stores enable row level security;
 alter table public.employees enable row level security;
@@ -148,12 +174,12 @@ begin
   );
   delete from public.employees e where e.store_id = current_store.id and e.id in (select value::uuid from jsonb_array_elements_text(coalesce(p_data->'deleted_employees', '[]'::jsonb)));
 
-  insert into public.employees as e(id, store_id, name, color, registered_month, sort_order)
-  select x.id, current_store.id, x.name, x.color, x.registered_month, x.sort_order
-  from jsonb_to_recordset(p_data->'employees') as x(id uuid, name text, color text, registered_month date, sort_order integer)
+  insert into public.employees as e(id, store_id, name, color, registered_month, start_date, sort_order)
+  select x.id, current_store.id, x.name, x.color, x.registered_month, x.start_date, x.sort_order
+  from jsonb_to_recordset(p_data->'employees') as x(id uuid, name text, color text, registered_month date, start_date date, sort_order integer)
   on conflict (id) do update set name = excluded.name, color = excluded.color,
-    registered_month = excluded.registered_month, sort_order = excluded.sort_order, updated_at = now()
-  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.sort_order);
+    registered_month = excluded.registered_month, start_date = excluded.start_date, sort_order = excluded.sort_order, updated_at = now()
+  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.start_date, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.start_date, excluded.sort_order);
 
   insert into public.schedule_months as m(store_id, month, off_target)
   select current_store.id, x.month, x.off_target from jsonb_to_recordset(p_data->'months') as x(month date, off_target integer)

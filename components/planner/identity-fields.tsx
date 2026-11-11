@@ -19,7 +19,7 @@ const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
     return "삭제하면 근무자와 모든 월의 일정이 함께 삭제돼요. 삭제 직후 실행 취소로 되돌릴 수 있어요.";
   }
 
-  return "이전·이후 모든 월에 표시돼요. 일정이 없는 날짜는 미배정으로 시작해요.";
+  return "근무 시작일부터 캘린더에 표시돼요. 시작일 이전은 집계하지 않으며, 일정이 없는 날짜는 미배정으로 시작해요.";
 };
 
 export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
@@ -32,6 +32,15 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
       value={editor.name}
       onChange={(event) => onChange({ ...editor, name: event.target.value })}
     />
+    {editor.kind === "employee" && (
+      <TextField
+        label="근무 시작일 (필수)"
+        type="date"
+        required
+        value={editor.startDate}
+        onChange={(event) => onChange({ ...editor, startDate: event.target.value })}
+      />
+    )}
     {editor.kind === "type" && (
       <div className="flex gap-3">
         <TextField

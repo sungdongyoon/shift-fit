@@ -1,7 +1,7 @@
 "use client";
 
 import { BsThreeDots } from "react-icons/bs";
-import { categories, labels, type EmployeeScheduleSummary } from "@/lib/schedule";
+import { categories, employeeStartDate, labels, type EmployeeScheduleSummary } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 type EmployeeCardProps = {
@@ -44,6 +44,7 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
           onClick={() =>
             openEditor({
               kind: "employee",
+              startDate: employeeStartDate(employee),
               id: employee.id,
               name: employee.name,
               color: employee.color,
@@ -59,7 +60,7 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
             key={category}
             className="group/count flex flex-col gap-[5px]"
             data-warning={
-              category === "off" && employee.counts.off !== target
+              category === "off" && Object.values(employee.counts).some((count) => count > 0) && employee.counts.off !== target
             }
           >
             <span className="text-[9px] text-content-tertiary min-[1600px]:text-[10px]">

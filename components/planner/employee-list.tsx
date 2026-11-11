@@ -25,6 +25,7 @@ export const EmployeeList = () => {
   const addEmployee = () => {
     openEditor({
       kind: "employee",
+      startDate: "",
       name: "",
       color: colors[employees.length % colors.length],
     });

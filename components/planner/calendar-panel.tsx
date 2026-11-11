@@ -114,17 +114,17 @@ export const CalendarPanel = () => {
             <Glyph name="people" />
           </div>
           <h3 className="text-[15px] font-bold">
-            함께 일할 팀원을 추가해 주세요
+            이 달에 표시할 근무자가 없어요
           </h3>
           <p className="mt-2.5 mb-[18px] text-[11px] leading-[1.9] text-content-tertiary">
-            직원을 등록하면 모든 날짜에 이름이 표시돼요.
+            근무 시작일부터 이름이 표시돼요.
             <br />
             처음에는 미배정으로 표시되고, 원하는 날에 근무를 배정할 수 있어요.
           </p>
           <Button
             size="sm"
             onClick={() =>
-              open({ kind: "employee", name: "", color: colors[0] })
+              open({ kind: "employee", startDate: "", name: "", color: colors[0] })
             }
             className="text-xs/normal"
           >

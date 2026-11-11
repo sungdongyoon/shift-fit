@@ -24,6 +24,7 @@ export type Employee = {
   name: string;
   color: string;
   from: string;
+  startDate?: string;
   until?: string;
   legacyOffThrough?: string;
 };
@@ -110,6 +111,24 @@ export const dateKey = (month: string, day: number) => {
   return `${month}-${String(day).padStart(2, "0")}`;
 };
 
+export const isValidDate = (date: string) => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(date)) return false;
+
+  const day = Number(date.slice(8));
+
+  return day >= 1 && day <= daysInMonth(date.slice(0, 7));
+};
+
+// Old in-memory/imported schedules only have a registration month.
+export const employeeStartDate = (employee: Employee) =>
+  employee.startDate ?? `${employee.from}-01`;
+
+export const isEmployeeVisibleOn = (employee: Employee, date: string) =>
+  employeeStartDate(employee) <= date;
+
+export const employeesInMonth = <T extends Employee>(employees: T[], month: string) =>
+  employees.filter((employee) => isEmployeeVisibleOn(employee, dateKey(month, daysInMonth(month))));
+
 export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
   const month = date.slice(0, 7);
   const wasPreviouslyVisible = employee && employee.from <= month &&
@@ -154,9 +173,14 @@ export const counts = (
 ): AssignmentCounts => {
   const result: AssignmentCounts = { work: 0, off: 0, leave: 0, other: 0, unassigned: 0 };
   const totalDays = daysInMonth(month);
+  const employee = data.employees?.find((item) => item.id === employeeId);
 
   for (let day = 1; day <= totalDays; day++) {
-    const assignment = getAssignment(data, dateKey(month, day), employeeId);
+    const date = dateKey(month, day);
+
+    if (employee && !isEmployeeVisibleOn(employee, date)) continue;
+
+    const assignment = getAssignment(data, date, employeeId);
     result[assignment.category]++;
   }
 
@@ -207,6 +231,7 @@ const isValidEmployee = (value: unknown): value is Employee => {
     isValidColor(value.color) &&
     typeof value.from === "string" &&
     /^\d{4}-\d{2}$/.test(value.from) &&
+    (value.startDate === undefined || (typeof value.startDate === "string" && isValidDate(value.startDate))) &&
     (value.legacyOffThrough === undefined ||
       (typeof value.legacyOffThrough === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value.legacyOffThrough)))
   );
