@@ -3,15 +3,13 @@
 import { memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  assignmentColor,
   isEmployeeVisibleOn,
-  labels,
   defaultAssignment,
   type Employee,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { compareCalendarRows } from "@/lib/calendar";
-import { tint } from "./presentation";
+import { CalendarAssignment } from "./calendar-assignment";
 import { FaPlus } from "react-icons/fa6";
 
 type CalendarDayProps = {
@@ -97,18 +95,14 @@ export const CalendarDay = memo(
         </div>
         <div className="flex flex-col gap-1">
           {rows.map(({ employee, assignment }) => (
-            <button
+            <CalendarAssignment
               key={employee.id}
-              className="min-h-6 w-full overflow-hidden rounded-[3px] border-0 border-l-[3px] border-l-[var(--shift-color)] bg-[var(--shift-bg)] px-1.5 py-[5px] text-left text-[10px] leading-[1.3] font-medium text-ellipsis whitespace-nowrap text-content hover:shadow-[0_0_0_1px_var(--shift-color)] data-[dimmed=true]:opacity-20 data-[highlighted=true]:font-bold data-[highlighted=true]:shadow-[0_0_0_1px_var(--shift-color)] min-[1600px]:px-2 min-[1600px]:py-1.5 min-[1600px]:text-xs/normal"
-              data-dimmed={!!selected && selected !== employee.id}
-              data-highlighted={selected === employee.id}
-              style={tint(assignmentColor(assignment))}
-              title={`${employee.name} · ${labels[assignment.category]}${assignment.shift ? ` · ${assignment.shift.name} ${assignment.shift.start}–${assignment.shift.end}` : ""}`}
-              aria-label={`${monthNumber}월 ${day}일 ${employee.name} ${labels[assignment.category]} 수정`}
-              onClick={() => editAssignment(date, employee.id)}
-            >
-              {employee.name}{assignment.category === "unassigned" ? " · 미배정" : ""}
-            </button>
+              date={date}
+              employee={employee}
+              assignment={assignment}
+              selected={selected}
+              onEdit={editAssignment}
+            />
           ))}
         </div>
       </div>

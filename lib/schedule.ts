@@ -188,10 +188,16 @@ export const counts = (
 };
 
 const nonWorkColors = {
-  unassigned: "#CBD5E1",
-  off: "#A3A6AE",
-  leave: "#42A184",
-  other: "#8B6AC8",
+  unassigned: "#B5BBC5",
+  off: "#A58C73",
+  leave: "#638C94",
+  other: "#949564",
+};
+
+export const assignmentLabel = (assignment: Assignment) => {
+  if (assignment.category === "work") return assignment.shift?.name ?? labels.work;
+
+  return labels[assignment.category];
 };
 
 export const assignmentColor = (assignment: Assignment) => {
