@@ -135,7 +135,7 @@ const PdfCalendar = ({
       >
         {data.title}
         {data.calendars.length > 1
-          ? ` (근무자 ${calendar.start}-${calendar.end})`
+          ? ` (일별 배정 ${calendar.start}-${calendar.end}번째)`
           : ""}
       </Text>
       <View style={styles.week} wrap={false}>

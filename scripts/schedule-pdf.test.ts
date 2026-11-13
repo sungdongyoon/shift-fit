@@ -110,3 +110,39 @@ test("이전 버전 저장 기록이 포함되어도 작업본 복원·수정·P
   assert.equal(output.employees[0].counts.off, 1);
   assert.equal(output.employees[0].counts.unassigned, 30);
 });
+
+test("PDF는 전체 일별 배정을 근무 타입·기타·휴무·연차·미배정 순으로 정렬한 뒤 페이지를 나눈다", () => {
+  const data = base();
+  data.employees = Array.from({ length: 10 }, (_, index) => ({
+    ...employee, id: `employee-${index}`, name: `근무자 ${index + 1}`,
+  }));
+  const assignments = [
+    { category: "unassigned" },
+    { category: "leave" },
+    { category: "off" },
+    { category: "other" },
+    { category: "work", shift: DEFAULT_SHIFT_TYPES[2] },
+    { category: "work", shift: DEFAULT_SHIFT_TYPES[1] },
+    { category: "work", shift: DEFAULT_SHIFT_TYPES[0] },
+    { category: "work", shift: DEFAULT_SHIFT_TYPES[0] },
+    { category: "off" },
+    { category: "work", shift: DEFAULT_SHIFT_TYPES[2] },
+  ] as const;
+
+  data.employees.forEach((person, index) => {
+    data.entries[`2026-05-01:${person.id}`] = assignments[index];
+    data.entries[`2026-05-02:${person.id}`] = assignments[9 - index];
+  });
+  const before = structuredClone(data);
+  const output = buildSchedulePdfData(data, "2026-05", {});
+  const rowsForDate = (date: string) => output.calendars.flatMap((calendar) =>
+    calendar.weeks.flat().find((day) => day.date === date)!.rows,
+  );
+
+  assert.deepEqual(rowsForDate("2026-05-01").map((row) => row.employee.id),
+    [6, 7, 5, 4, 9, 3, 2, 8, 1, 0].map((index) => `employee-${index}`));
+  assert.deepEqual(rowsForDate("2026-05-02").map((row) => row.employee.id),
+    [2, 3, 4, 0, 5, 6, 1, 7, 8, 9].map((index) => `employee-${index}`));
+  assert.deepEqual(output.employees.map((person) => person.id), data.employees.map((person) => person.id));
+  assert.deepEqual(data, before);
+});

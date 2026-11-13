@@ -1,4 +1,4 @@
-import { buildMonthCells, compareCalendarRows } from "./calendar";
+import { buildMonthCells, type CalendarRow } from "./calendar";
 import type { HolidayMap } from "./holidays";
 import {
   counts,
@@ -18,21 +18,42 @@ const EMPLOYEES_PER_CALENDAR = 5;
 const shiftKey = (shift: ShiftType) =>
   [shift.id, shift.name, shift.start, shift.end, shift.color].join("|");
 
+const CATEGORY_ORDER = { work: 0, other: 1, off: 2, leave: 3, unassigned: 4 };
+
+const comparePdfRows = (first: CalendarRow, second: CalendarRow) => {
+  const categoryOrder = CATEGORY_ORDER[first.assignment.category] - CATEGORY_ORDER[second.assignment.category];
+
+  if (categoryOrder !== 0) return categoryOrder;
+  if (first.assignment.category !== "work") return 0;
+
+  const firstShift = first.assignment.shift;
+  const secondShift = second.assignment.shift;
+
+  return (firstShift?.start ?? "").localeCompare(secondShift?.start ?? "")
+    || (firstShift?.name ?? "").localeCompare(secondShift?.name ?? "", "ko");
+};
+
 const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[], holidays: HolidayMap) => {
-  const cells = buildMonthCells(month);
+  const sortedDays = buildMonthCells(month).map((cell) => ({
+    ...cell,
+    holiday: holidays[cell.date],
+    rows: cell.isCurrentMonth
+      ? employees
+          .filter((employee) => isEmployeeVisibleOn(employee, cell.date))
+          .map((employee) => ({
+            employee,
+            assignment: getAssignment(data, cell.date, employee.id),
+          }))
+          .sort(comparePdfRows)
+      : [],
+  }));
   const groups = [];
 
   for (let start = 0; start < employees.length; start += EMPLOYEES_PER_CALENDAR) {
-    const groupEmployees = employees.slice(start, start + EMPLOYEES_PER_CALENDAR);
-    const days = cells.map((cell) => ({
-      ...cell,
-      holiday: holidays[cell.date],
-      rows: cell.isCurrentMonth
-        ? groupEmployees.filter((employee) => isEmployeeVisibleOn(employee, cell.date)).map((employee) => ({
-            employee,
-            assignment: getAssignment(data, cell.date, employee.id),
-          })).sort(compareCalendarRows)
-        : [],
+    const end = Math.min(start + EMPLOYEES_PER_CALENDAR, employees.length);
+    const days = sortedDays.map((day) => ({
+      ...day,
+      rows: day.rows.slice(start, end),
     }));
     const weeks = [];
 
@@ -40,7 +61,7 @@ const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[
       weeks.push(days.slice(index, index + 7));
     }
 
-    groups.push({ start: start + 1, end: start + groupEmployees.length, weeks });
+    groups.push({ start: start + 1, end, weeks });
   }
 
   return groups;
