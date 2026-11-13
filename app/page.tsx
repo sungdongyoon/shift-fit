@@ -42,7 +42,7 @@ const Home = () => {
           role="status"
           className="grid min-h-dvh place-items-center bg-canvas-subtle text-sm text-content-secondary"
         >
-          로그인 정보를 확인하고 있어요…
+          로그인 정보를 확인하고 있습니다…
         </div>
       }
     >

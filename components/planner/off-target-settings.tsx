@@ -9,7 +9,10 @@ export const OffTargetSettings = () => {
   const target = usePlannerStore(
     (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
+  const ready = usePlannerStore(
+    (state) =>
+      state.storageStatus !== "loading" && state.storageStatus !== "blocked",
+  );
   const setOffTarget = usePlannerStore((state) => state.setOffTarget);
   const days = month ? daysInMonth(month) : 31;
 
@@ -38,9 +41,9 @@ export const OffTargetSettings = () => {
         </span>
       </div>
       <p className="mt-[9px] text-[10px] leading-[1.8] text-content-tertiary">
-        이 달의 모든 근무자에게 적용돼요.
+        이 달의 모든 근무자에게 적용됩니다.
         <br />
-        연차와 기타는 휴무에 포함되지 않아요.
+        연차와 기타는 휴무에 포함되지 않습니다.
       </p>
     </div>
   );

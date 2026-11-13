@@ -12,14 +12,14 @@ type IdentityFieldsProps = {
 
 const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
   if (editor.kind === "type") {
-    return "타입 수정은 이 달의 기존 배정에만 반영돼요. 삭제해도 기존 배정은 유지되며, 종료 시간이 이르면 다음 날 종료로 표시돼요.";
+    return "타입 수정은 이 달의 기존 배정에만 반영됩니다. 삭제해도 기존 배정은 유지됩니다.";
   }
 
   if (editor.id) {
     return "삭제하면 근무자와 모든 월의 일정이 함께 삭제돼요. 삭제 직후 실행 취소로 되돌릴 수 있어요.";
   }
 
-  return "근무 시작일부터 캘린더에 표시돼요. 시작일 이전은 집계하지 않으며, 일정이 없는 날짜는 미배정으로 시작해요.";
+  return "근무 시작일부터 캘린더에 표시됩니다. 시작일 이전은 집계하지 않으며, 일정이 없는 날짜는 미배정으로 시작합니다.";
 };
 
 export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
@@ -38,7 +38,9 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
         type="date"
         required
         value={editor.startDate}
-        onChange={(event) => onChange({ ...editor, startDate: event.target.value })}
+        onChange={(event) =>
+          onChange({ ...editor, startDate: event.target.value })
+        }
       />
     )}
     {editor.kind === "type" && (

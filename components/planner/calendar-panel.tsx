@@ -9,20 +9,17 @@ import { SavePlannerButton } from "./save-planner-button";
 import { PdfExportButton } from "./pdf-export-button";
 import { CalendarGrid } from "./calendar-grid";
 import { Glyph } from "./glyph";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
+import { FaPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 
 export const CalendarPanel = () => {
-  const {
-    month,
-    year,
-    monthNumber,
-    cells,
-    employees,
-  } = useMonthCalendar();
+  const { month, year, monthNumber, cells, employees } = useMonthCalendar();
 
   const { holidays, status: holidayStatus, retry } = useHolidays(year);
 
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
+  const ready = usePlannerStore(
+    (state) =>
+      state.storageStatus !== "loading" && state.storageStatus !== "blocked",
+  );
   const selected = usePlannerStore((state) => state.view.selected);
   const hasEmployees = usePlannerStore(
     (state) => state.data.employees.length > 0,
@@ -33,8 +30,11 @@ export const CalendarPanel = () => {
   const open = usePlannerStore((state) => state.openEditor);
   const loadExample = usePlannerStore((state) => state.loadExample);
 
-  const selectedEmployee = employees.find((employee) => employee.id === selected);
-  const showHolidayNotice = holidayStatus === "error" || holidayStatus === "unavailable";
+  const selectedEmployee = employees.find(
+    (employee) => employee.id === selected,
+  );
+  const showHolidayNotice =
+    holidayStatus === "error" || holidayStatus === "unavailable";
 
   return (
     <section
@@ -75,7 +75,11 @@ export const CalendarPanel = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SavePlannerButton />
-          <PdfExportButton month={month} holidays={holidays} disabled={!ready || !employees.length} />
+          <PdfExportButton
+            month={month}
+            holidays={holidays}
+            disabled={!ready || !employees.length}
+          />
         </div>
       </div>
       {showHolidayNotice && (
@@ -100,8 +104,7 @@ export const CalendarPanel = () => {
       )}
       {selected && (
         <div className="flex justify-between gap-2 bg-brand-subtle px-5 py-2 text-[10px] text-brand-content">
-          {selectedEmployee?.name} 님의
-          일정을 강조하고 있어요
+          {selectedEmployee?.name} 님의 일정을 강조하고 있어요
           <button onClick={clearSelection} className="border-0 bg-transparent">
             강조 해제 ×
           </button>
@@ -113,31 +116,35 @@ export const CalendarPanel = () => {
           <div className="mx-auto mb-3.5 grid size-10 place-items-center rounded-xl bg-brand-subtle text-brand-content">
             <Glyph name="people" />
           </div>
-          <h3 className="text-[15px] font-bold">
-            이 달에 표시할 근무자가 없어요
-          </h3>
+          <h3 className="text-[15px] font-bold">근무자가 없습니다.</h3>
           <p className="mt-2.5 mb-[18px] text-[11px] leading-[1.9] text-content-tertiary">
-            근무 시작일부터 이름이 표시돼요.
+            근무 시작일부터 이름이 표시됩니다.
             <br />
-            처음에는 미배정으로 표시되고, 원하는 날에 근무를 배정할 수 있어요.
+            처음에는 미배정으로 표시되며 <br />
+            원하는 날에 근무를 배정할 수 있습니다.
           </p>
           <Button
             size="sm"
             onClick={() =>
-              open({ kind: "employee", startDate: "", name: "", color: colors[0] })
+              open({
+                kind: "employee",
+                startDate: "",
+                name: "",
+                color: colors[0],
+              })
             }
             className="text-xs/normal"
           >
-            + 첫 근무자 추가
+            <FaPlus /> 근무자 추가
           </Button>
-          {!hasEmployees && (
+          {/* {!hasEmployees && (
             <button
               className="mx-auto mt-[13px] block border-0 bg-transparent text-[10px] text-content-tertiary"
               onClick={loadExample}
             >
               예시 근무표 먼저 둘러보기 ↗
             </button>
-          )}
+          )} */}
         </div>
       )}
     </section>

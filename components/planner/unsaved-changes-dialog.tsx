@@ -13,12 +13,13 @@ export const UnsavedChangesDialog = () => {
 
   return (
     <Dialog
+      className="[&_h2]:text-base [&_h2]:leading-6 [&_p]:text-xs [&_p]:leading-5 [&_button]:text-xs"
       open={Boolean(pending)}
       onOpenChange={(open) => {
         if (!open) void resolve("cancel");
       }}
       title="저장하지 않은 변경사항이 있어요"
-      description={`${pending?.label ?? "이동"} 전에 변경사항을 저장할까요? 직원·근무 타입·일정 등 저장 이후의 모든 변경사항에 적용돼요.`}
+      description={`${pending?.label ?? "이동"} 전에 변경사항을 저장할까요? 직원·근무 타입·일정 등 저장 이후의 모든 변경사항에 적용됩니다.`}
       footer={
         <>
           <Button

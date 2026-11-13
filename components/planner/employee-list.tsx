@@ -14,11 +14,16 @@ export const EmployeeList = () => {
 
   const [search, setSearch] = useState("");
 
-  const ready = usePlannerStore((state) => state.storageStatus !== "loading" && state.storageStatus !== "blocked");
+  const ready = usePlannerStore(
+    (state) =>
+      state.storageStatus !== "loading" && state.storageStatus !== "blocked",
+  );
   const openEditor = usePlannerStore((state) => state.openEditor);
 
   const searchTerm = search.trim();
-  const filteredEmployees = stats.filter((employee) => employee.name.includes(searchTerm));
+  const filteredEmployees = stats.filter((employee) =>
+    employee.name.includes(searchTerm),
+  );
   const hasNoEmployees = employees.length === 0;
   const hasNoSearchResults = !hasNoEmployees && filteredEmployees.length === 0;
 
@@ -44,7 +49,7 @@ export const EmployeeList = () => {
         </button>
       </PanelHeading>
       <p className="mt-[9px] mb-[19px] text-[10px] leading-[1.6] text-content-tertiary">
-        이름을 누르면 개인 일정이 강조돼요.
+        이름을 누르면 개인 일정이 강조됩니다.
       </p>
       <label className="mb-2 flex items-center gap-[7px] rounded-[7px] border border-line px-2.5 py-2">
         <span className="text-xl/normal leading-4 text-content-tertiary">
@@ -62,15 +67,17 @@ export const EmployeeList = () => {
         {filteredEmployees.map((employee, index) => (
           <div key={employee.id}>
             {index > 0 && (
-              <div aria-hidden="true" className="mx-2 my-1 h-px bg-line max-[960px]:hidden" />
+              <div
+                aria-hidden="true"
+                className="mx-2 my-1 h-px bg-line max-[960px]:hidden"
+              />
             )}
             <EmployeeCard employee={employee} target={target} />
           </div>
         ))}
         {hasNoEmployees && (
           <div className="py-6 text-center text-[11px] leading-[1.9] text-content-tertiary">
-            아직 등록된 근무자가 없어요.
-            <br />+ 버튼으로 팀원을 추가하세요.
+            등록된 근무자가 없습니다.
           </div>
         )}
         {hasNoSearchResults && (

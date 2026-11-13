@@ -2,7 +2,13 @@
 
 import { PanelHeading } from "./panel-heading";
 import { useShiftTypes } from "@/hooks/use-month-schedule";
-import { assignmentColor, colors, getMonthShiftTypes, labels, type Category } from "@/lib/schedule";
+import {
+  assignmentColor,
+  colors,
+  getMonthShiftTypes,
+  labels,
+  type Category,
+} from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { previousMonthKey } from "@/lib/schedule-commands";
 import { Glyph } from "./glyph";
@@ -15,8 +21,13 @@ export const ShiftTypeSidebar = () => {
   const open = usePlannerStore((state) => state.openEditor);
   const copyTypes = usePlannerStore((state) => state.copyPreviousMonthTypes);
   const month = usePlannerStore((state) => state.view.month);
-  const canCopy = usePlannerStore((state) => Boolean(state.view.month) &&
-    getMonthShiftTypes(state.data, previousMonthKey(state.view.month)).some((type) => !type.archived));
+  const canCopy = usePlannerStore(
+    (state) =>
+      Boolean(state.view.month) &&
+      getMonthShiftTypes(state.data, previousMonthKey(state.view.month)).some(
+        (type) => !type.archived,
+      ),
+  );
 
   const addShiftType = () => {
     open({
@@ -54,7 +65,7 @@ export const ShiftTypeSidebar = () => {
         </button>
         {!canCopy && (
           <p className="text-[10px] leading-[1.6] text-content-tertiary">
-            이전 월에 복사할 근무 타입이 없어요.
+            복사할 근무 타입이 없습니다.
           </p>
         )}
       </div>
@@ -87,15 +98,17 @@ export const ShiftTypeSidebar = () => {
         근무 외 일정
       </h3>
       <div className="mt-4 mb-[26px] flex flex-col gap-3.5 text-[11px] text-content-secondary max-[640px]:hidden">
-        {(["off", "leave", "other", "unassigned"] as Category[]).map((category) => (
-          <div key={category} className="flex items-center gap-[9px]">
-            <span
-              className="size-2 rounded-[3px]"
-              style={{ background: assignmentColor({ category }) }}
-            />
-            {labels[category]}
-          </div>
-        ))}
+        {(["off", "leave", "other", "unassigned"] as Category[]).map(
+          (category) => (
+            <div key={category} className="flex items-center gap-[9px]">
+              <span
+                className="size-2 rounded-[3px]"
+                style={{ background: assignmentColor({ category }) }}
+              />
+              {labels[category]}
+            </div>
+          ),
+        )}
       </div>
       <div className="rounded-control bg-canvas-subtle px-3 py-4 max-[640px]:hidden">
         <Glyph name="calendar" className="mb-[11px] text-content-tertiary" />
