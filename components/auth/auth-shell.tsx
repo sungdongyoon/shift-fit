@@ -23,8 +23,8 @@ export const AuthShell = ({ children }: { children: ReactNode }) => {
             MAKE EVERY SHIFT FIT
           </p>
           <h2 className="text-3xl font-bold leading-snug tracking-tight sm:text-4xl">
-            우리 팀의 한 달을,
-            <br />더 편하게 계획하세요.
+            ShiftFit으로 더 편하게 <br />
+            근무표를 작성해보세요.
           </h2>
           <p className="mt-5 text-sm leading-7 text-content-secondary">
             근무부터 휴무까지 한눈에 확인하고,
@@ -46,10 +46,10 @@ export const AuthShell = ({ children }: { children: ReactNode }) => {
                 <div key={day} className="rounded-lg bg-canvas-subtle p-3">
                   <p className="mb-3 text-xs text-content-tertiary">{day}</p>
                   <p className="mb-2 rounded border-l-2 border-brand bg-brand-subtle px-2 py-2 text-[11px]">
-                    김지우 · 오픈
+                    근무자 1 · 오픈
                   </p>
                   <p className="rounded border-l-2 border-success bg-success-subtle px-2 py-2 text-[11px]">
-                    박서준 · 마감
+                    근무자 2 · 마감
                   </p>
                 </div>
               ))}
@@ -60,9 +60,6 @@ export const AuthShell = ({ children }: { children: ReactNode }) => {
             </p>
           </div>
         </div>
-        <p className="hidden text-xs text-content-tertiary lg:block">
-          작은 매장부터 시작하는 간결한 스케줄 관리
-        </p>
       </section>
       <section
         className="flex items-center justify-center px-6 py-12 sm:px-12 lg:p-16"

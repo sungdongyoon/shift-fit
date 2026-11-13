@@ -63,15 +63,15 @@ export const AuthForm = ({
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight">{content.title}</h1>
-      <p className="mt-3 text-sm leading-6 text-content-secondary">
+      {/* <p className="mt-3 text-sm leading-6 text-content-secondary">
         {content.description}
-      </p>
+      </p> */}
       {!configured && (
         <p
           role="status"
           className="mt-6 rounded-control bg-warning-subtle px-4 py-3 text-sm leading-6 text-warning"
         >
-          인증 서비스 연결을 준비 중이에요. 연결이 완료되면 이용할 수 있어요.
+          인증 서비스 연결을 준비 중입니다. 연결이 완료되면 이용할 수 있습니다.
         </p>
       )}
       {notice && (
