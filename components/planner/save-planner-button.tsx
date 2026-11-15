@@ -9,6 +9,7 @@ export const SavePlannerButton = () => {
   const status = usePlannerStore((state) => state.storageStatus);
   const conflict = usePlannerStore((state) => state.conflict);
   const save = usePlannerStore((state) => state.saveSchedule);
+  const storeNameSaving = usePlannerStore((state) => state.storeNameSave.saving);
   const saving = status === "saving";
 
   return (
@@ -22,6 +23,7 @@ export const SavePlannerButton = () => {
         disabled={
           !dirty ||
           saving ||
+          storeNameSaving ||
           conflict ||
           status === "loading" ||
           status === "blocked"

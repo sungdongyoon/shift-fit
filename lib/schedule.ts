@@ -39,6 +39,8 @@ export type Assignment = {
 
 export type Schedule = {
   version: 3;
+  storeName?: string;
+  employeeOffTargets?: Record<string, Record<string, number | null>>;
   employees: Employee[];
   typesByMonth: Record<string, ShiftType[]>;
   entries: Record<string, Assignment>;
@@ -128,6 +130,38 @@ export const isEmployeeVisibleOn = (employee: Employee, date: string) =>
 
 export const employeesInMonth = <T extends Employee>(employees: T[], month: string) =>
   employees.filter((employee) => isEmployeeVisibleOn(employee, dateKey(month, daysInMonth(month))));
+
+// null은 고정된 휴무 기준이 없다는 명시적인 설정입니다.
+export const employeeOffTarget = (
+  data: Pick<Schedule, "targets" | "employeeOffTargets">,
+  month: string,
+  employeeId: string,
+): number | null => {
+  const settings = data.employeeOffTargets ?? {};
+  const sourceMonth = Object.keys(settings)
+    .filter((key) => key <= month && Object.hasOwn(settings[key], employeeId))
+    .sort()
+    .at(-1);
+  const target = sourceMonth ? settings[sourceMonth][employeeId] : data.targets[month] ?? DEFAULT_OFF_TARGET;
+
+  return target === null ? null : Math.min(target, daysInMonth(month));
+};
+
+// 작성한 월은 상속받은 기준을 고정해 두어 이전 월 수정으로 바뀌지 않게 합니다.
+export const snapshotEmployeeOffTargets = (data: Schedule, month: string): Schedule => {
+  if (!month) return data;
+
+  const existing = data.employeeOffTargets?.[month] ?? {};
+  const targets = { ...existing };
+
+  employeesInMonth(data.employees, month).forEach((employee) => {
+    if (!Object.hasOwn(targets, employee.id)) targets[employee.id] = employeeOffTarget(data, month, employee.id);
+  });
+
+  if (Object.keys(targets).length === Object.keys(existing).length) return data;
+
+  return { ...data, employeeOffTargets: { ...data.employeeOffTargets, [month]: targets } };
+};
 
 export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
   const month = date.slice(0, 7);
@@ -281,6 +315,20 @@ export const syncAssignmentShiftTypes = (data: Schedule, month: string): Schedul
 
 const isValidMonth = (value: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 
+const isValidEmployeeOffTargets = (value: unknown, employees: Employee[]) => {
+  if (!isRecord(value)) return false;
+
+  const employeeIds = new Set(employees.map((employee) => employee.id));
+
+  return Object.entries(value).every(([month, targets]) => {
+    if (!isValidMonth(month) || !isRecord(targets)) return false;
+
+    return Object.entries(targets).every(([id, target]) => employeeIds.has(id) &&
+      (target === null || (typeof target === "number" && Number.isInteger(target) && target >= 0 && target <= daysInMonth(month))),
+    );
+  });
+};
+
 export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFullYear(), new Date().getMonth())): Schedule => {
   const saved: unknown = JSON.parse(raw);
 
@@ -296,6 +344,13 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
   if (!Object.entries(saved.targets).every(([month, target]) =>
     isValidMonth(month) && typeof target === "number" && Number.isInteger(target) && target >= 0 && target <= 31,
   )) throw new Error("휴무 기준이 올바르지 않아요.");
+
+  if (saved.storeName !== undefined && (typeof saved.storeName !== "string" || saved.storeName.length > 80)) {
+    throw new Error("매장 이름은 80자 이내로 입력해 주세요.");
+  }
+  if (saved.employeeOffTargets !== undefined && !isValidEmployeeOffTargets(saved.employeeOffTargets, saved.employees as Employee[])) {
+    throw new Error("근무자별 휴무 기준을 확인해 주세요.");
+  }
 
   if (saved.version === 3) {
     if (!isRecord(saved.typesByMonth) || !Object.entries(saved.typesByMonth).every(([month, types]) =>

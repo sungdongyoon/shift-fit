@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
-import { counts, employeesInMonth, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
+import { counts, employeeOffTarget, employeesInMonth, DEFAULT_OFF_TARGET, getMonthShiftTypes } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const useEmployees = () =>
@@ -32,21 +32,24 @@ export const useMonthCalendar = () => {
 export const useMonthSchedule = () => {
   const month = usePlannerStore((state) => state.view.month);
   const entries = usePlannerStore((state) => state.data.entries);
+  const employeeOffTargets = usePlannerStore((state) => state.data.employeeOffTargets);
+  const targets = usePlannerStore((state) => state.data.targets);
   const target = usePlannerStore(
     (state) => state.data.targets[state.view.month] ?? DEFAULT_OFF_TARGET,
   );
 
   const employees = useEmployees();
 
-  // Shift-type edits and off-target edits do not change assignment totals.
+  // 근무 횟수와 개인별 기준을 현재 월 기준으로 함께 계산합니다.
   const stats = useMemo(
     () => employees.map((employee) => ({
       ...employee,
       counts: counts({ entries, employees }, month, employee.id),
+      offTarget: month ? employeeOffTarget({ targets, employeeOffTargets }, month, employee.id) : null,
     })),
-    [entries, month, employees],
+    [entries, month, employees, targets, employeeOffTargets],
   );
-  const mismatch = employeesInMonth(stats, month).filter((employee) => employee.counts.off !== target).length;
+  const mismatch = employeesInMonth(stats, month).filter((employee) => employee.offTarget !== null && employee.counts.off !== employee.offTarget).length;
 
   return { employees, target, stats, mismatch };
 };

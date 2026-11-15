@@ -141,7 +141,7 @@ export const pdfStyles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: pdfColors.line,
   },
-  employeeName: { width: "40%", color: pdfColors.ink, fontWeight: 600 },
+  employeeName: { width: "28%", color: pdfColors.ink, fontWeight: 600 },
   count: { width: "12%", textAlign: "center" },
   footer: {
     position: "absolute",

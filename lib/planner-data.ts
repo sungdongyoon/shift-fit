@@ -30,6 +30,8 @@ type TypeRow = {
   archived: boolean;
   sort_order: number;
 };
+type EmployeeTargetRow = { employee_id: string; month: string; off_target: number | null };
+
 type AssignmentRow = {
   employee_id: string;
   work_date: string;
@@ -39,6 +41,8 @@ type AssignmentRow = {
 };
 
 export type PlannerPayload = {
+  store_name?: string;
+  employee_targets: EmployeeTargetRow[];
   employees: EmployeeRow[];
   months: MonthRow[];
   types: TypeRow[];
@@ -84,11 +88,15 @@ export const toPlannerPayload = (input: unknown): PlannerPayload => {
     ...Object.keys(data.targets),
   ]);
   const payload: PlannerPayload = {
+    store_name: data.storeName?.trim() ?? "나의 매장",
+    employee_targets: [],
     employees: [],
     months: [],
     types: [],
     assignments: [],
   };
+
+  requireValue(Boolean(payload.store_name) && payload.store_name!.length <= 80, "매장 이름은 1~80자로 입력해 주세요.");
 
   data.employees.forEach((employee, sort_order) => {
     requireValue(
@@ -191,6 +199,16 @@ export const toPlannerPayload = (input: unknown): PlannerPayload => {
     });
   });
 
+  Object.entries(data.employeeOffTargets ?? {}).forEach(([month, targets]) => {
+    requireValue(monthPattern.test(month), "휴무 기준 월을 확인해 주세요.");
+    Object.entries(targets).forEach(([employee_id, off_target]) => {
+      requireValue(employeeIds.has(employee_id), "휴무 기준의 근무자를 확인해 주세요.");
+      requireValue(off_target === null || (Number.isInteger(off_target) && off_target >= 0 && off_target <= daysInMonth(month)), "근무자별 휴무 기준을 확인해 주세요.");
+      payload.employee_targets.push({ employee_id, month: `${month}-01`, off_target });
+    });
+    months.add(month);
+  });
+
   [...months].sort().forEach((month) => {
     const target = data.targets[month] ?? DEFAULT_OFF_TARGET;
     requireValue(
@@ -217,6 +235,15 @@ export const fromPlannerRows = (input: unknown): PlannerSnapshot => {
   );
   const data = structuredClone(initial);
   const types = new Map<string, ShiftType>();
+
+  if (rows.store_name !== undefined) data.storeName = rows.store_name;
+  if (rows.employee_targets?.length) {
+    data.employeeOffTargets = {};
+    rows.employee_targets.forEach((row) => {
+      (data.employeeOffTargets![row.month.slice(0, 7)] ??= {})[row.employee_id] = row.off_target;
+    });
+  }
+
   data.employees = rows.employees.map((employee) => ({
     id: employee.id,
     name: employee.name,
@@ -256,6 +283,7 @@ export const fromPlannerRows = (input: unknown): PlannerSnapshot => {
 
 export type PlannerChanges = PlannerPayload & {
   deleted_employees: string[];
+  deleted_employee_targets: Array<{ employee_id: string; month: string }>;
   deleted_types: string[];
   deleted_months: string[];
   deleted_assignments: Array<{ employee_id: string; work_date: string }>;
@@ -280,7 +308,13 @@ export const buildPlannerChanges = (
   const assignmentKey = (row: AssignmentRow) =>
     `${row.work_date}:${row.employee_id}`;
 
+  const employeeTargetKey = (row: { month: string; employee_id: string }) => `${row.month}:${row.employee_id}`;
+
   return {
+    ...(next.store_name !== previous.store_name ? { store_name: next.store_name } : {}),
+    employee_targets: changed(next.employee_targets, previous.employee_targets, employeeTargetKey),
+    deleted_employee_targets: removed(next.employee_targets, previous.employee_targets, employeeTargetKey)
+      .map(({ employee_id, month }) => ({ employee_id, month })),
     employees: changed(next.employees, previous.employees, (row) => row.id),
     months: changed(next.months, previous.months, (row) => row.month),
     types: changed(next.types, previous.types, (row) => row.id),
@@ -338,7 +372,14 @@ export const parsePlannerChanges = (input: unknown): PlannerChanges => {
       ),
     );
 
-  return Object.fromEntries(
-    keys.map((key) => [key, changes[key]]),
-  ) as PlannerChanges;
+  requireValue(changes.store_name === undefined || (typeof changes.store_name === "string" && changes.store_name.trim().length > 0 && changes.store_name.length <= 80), "매장 이름은 1~80자로 입력해 주세요.");
+  requireValue(changes.employee_targets === undefined || Array.isArray(changes.employee_targets), "근무자별 휴무 기준을 확인해 주세요.");
+  requireValue(changes.deleted_employee_targets === undefined || Array.isArray(changes.deleted_employee_targets), "삭제할 휴무 기준을 확인해 주세요.");
+
+  return {
+    ...Object.fromEntries(keys.map((key) => [key, changes[key]])),
+    ...(changes.store_name !== undefined ? { store_name: changes.store_name.trim() } : {}),
+    employee_targets: changes.employee_targets ?? [],
+    deleted_employee_targets: changes.deleted_employee_targets ?? [],
+  } as PlannerChanges;
 };

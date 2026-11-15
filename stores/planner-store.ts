@@ -3,12 +3,14 @@ import { createStore } from "zustand/vanilla";
 import type { Editor } from "../lib/editor";
 import {
   createExampleSchedule,
+  applyMonthlyOffTargets,
   copyPreviousMonthTypes,
   removeScheduleEditor,
   saveScheduleEditor,
 } from "../lib/schedule-commands";
 import {
   dateKey,
+  snapshotEmployeeOffTargets,
   isEmployeeVisibleOn,
   daysInMonth,
   DEFAULT_OFF_TARGET,
@@ -46,6 +48,7 @@ export type PlannerState = {
   baseline: Schedule;
   revision: number;
   persistenceError: string | null;
+  storeNameSave: { saving: boolean; error: string | null };
   conflict: boolean;
   pendingNavigation: { label: string; proceed: () => void } | null;
 };
@@ -66,6 +69,8 @@ type PlannerActions = {
   selectEmployee: (employee: string) => void;
   clearSelection: () => void;
   setOffTarget: (target: number) => void;
+  saveStoreName: (name: string) => Promise<boolean>;
+  applyMonthlyOffTargets: (month: string, targets: Record<string, number | null>) => string | null;
   loadExample: () => void;
   copyPreviousMonthTypes: () => void;
   notify: (message: string) => void;
@@ -97,8 +102,10 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
     ) => {
       if (!editable()) return;
 
+      const snapshot = snapshotEmployeeOffTargets(data, get().view.month);
+
       set((state) => ({
-        data,
+        data: snapshot,
         toast: { message, undo: state.data },
         ...extra,
       }));
@@ -109,6 +116,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
       baseline: original,
       revision: 0,
       persistenceError: null,
+      storeNameSave: { saving: false, error: null },
       conflict: false,
       pendingNavigation: null,
       view: { month: "", today: "", selected: "" },
@@ -117,7 +125,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
       storageStatus: "loading",
       loadSchedule: (now = new Date()) => {
         if (loadRequest) return loadRequest;
-        if (get().storageStatus === "saving" || hasUnsavedChanges(get()))
+        if (get().storageStatus === "saving" || get().storeNameSave.saving || hasUnsavedChanges(get()))
           return Promise.resolve();
 
         const month = monthKey(now.getFullYear(), now.getMonth());
@@ -144,6 +152,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
               baseline: result.value.data,
               revision: result.value.revision,
               storageStatus: "saved",
+              storeNameSave: { saving: false, error: null },
               persistenceError: null,
               conflict: false,
               editor: null,
@@ -168,6 +177,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         if (
           !editable() ||
           state.storageStatus === "saving" ||
+          state.storeNameSave.saving ||
           state.conflict ||
           !hasUnsavedChanges(state)
         )
@@ -217,7 +227,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         }
       },
       requestLeave: (label, proceed) => {
-        if (get().storageStatus === "saving") {
+        if (get().storageStatus === "saving" || get().storeNameSave.saving) {
           get().notify("저장이 끝난 뒤 이동해 주세요.");
 
           return;
@@ -232,7 +242,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
       resolveNavigation: async (choice) => {
         const pending = get().pendingNavigation;
 
-        if (!pending || get().storageStatus === "saving") return;
+        if (!pending || get().storageStatus === "saving" || get().storeNameSave.saving) return;
         if (choice === "cancel") {
           set({ pendingNavigation: null });
 
@@ -357,6 +367,64 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         })),
       clearSelection: () =>
         set((state) => ({ view: { ...state.view, selected: "" } })),
+      saveStoreName: async (input) => {
+        const name = input.trim();
+        const state = get();
+
+        if (!editable() || state.storageStatus === "saving" || state.storeNameSave.saving || state.conflict) return false;
+        if (!name || name.length > 80) {
+          set({ storeNameSave: { saving: false, error: "매장 이름은 1~80자로 입력해 주세요." } });
+
+          return false;
+        }
+        if (name === (state.baseline.storeName ?? "나의 매장")) return true;
+
+        set({ storeNameSave: { saving: true, error: null } });
+
+        try {
+          if (!persistence) throw new Error("저장소 연결이 필요해요.");
+
+          // 마지막 저장본에서 이름만 바꿔 일정·직원·휴무 기준의 미저장 편집은 전송하지 않습니다.
+          const snapshot = { ...state.baseline, storeName: name };
+          const result = await persistence.save(snapshot, state.revision, state.baseline);
+
+          if (!result.ok) {
+            set({
+              storeNameSave: { saving: false, error: result.error },
+              ...(result.conflict ? { conflict: true, persistenceError: result.error } : {}),
+            });
+
+            return false;
+          }
+          set((current) => ({
+            data: { ...current.data, storeName: name },
+            baseline: { ...current.baseline, storeName: name },
+            revision: result.value,
+            storeNameSave: { saving: false, error: null },
+            toast: {
+              message: "매장 이름을 저장했어요.",
+              ...(current.toast?.undo ? { undo: { ...current.toast.undo, storeName: name } } : {}),
+            },
+          }));
+
+          return true;
+        } catch {
+          set({ storeNameSave: { saving: false, error: "매장 이름을 저장하지 못했어요. 다시 시도해 주세요." } });
+
+          return false;
+        }
+      },
+      applyMonthlyOffTargets: (month, targets) => {
+        if (!editable() || month !== get().view.month) return "설정할 월을 다시 확인해 주세요.";
+
+        const result = applyMonthlyOffTargets(get().data, month, targets);
+
+        if (!result.ok) return result.error;
+
+        commit(result.data, result.message);
+
+        return null;
+      },
       setOffTarget: (target) => {
         if (!editable()) return;
 

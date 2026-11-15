@@ -10,7 +10,7 @@ import { FaSearch } from "react-icons/fa";
 import { EmployeeCard } from "./employee-card";
 
 export const EmployeeList = () => {
-  const { employees, stats, target } = useMonthSchedule();
+  const { employees, stats } = useMonthSchedule();
 
   const [search, setSearch] = useState("");
 
@@ -72,7 +72,7 @@ export const EmployeeList = () => {
                 className="mx-2 my-1 h-px bg-line max-[960px]:hidden"
               />
             )}
-            <EmployeeCard employee={employee} target={target} />
+            <EmployeeCard employee={employee} target={employee.offTarget} />
           </div>
         ))}
         {hasNoEmployees && (

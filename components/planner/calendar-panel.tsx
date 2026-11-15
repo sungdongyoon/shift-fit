@@ -20,6 +20,7 @@ export const CalendarPanel = () => {
     (state) =>
       state.storageStatus !== "loading" && state.storageStatus !== "blocked",
   );
+  const storeName = usePlannerStore((state) => state.data.storeName ?? "나의 매장");
   const selected = usePlannerStore((state) => state.view.selected);
   const hasEmployees = usePlannerStore(
     (state) => state.data.employees.length > 0,
@@ -42,6 +43,7 @@ export const CalendarPanel = () => {
       aria-label="월간 근무 캘린더"
       aria-busy={!ready}
     >
+      <p className="px-[22px] pt-5 text-sm font-semibold text-content-secondary [overflow-wrap:anywhere] max-[1200px]:px-3.5">{storeName}</p>
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-[22px] pt-[23px] pb-[17px] max-[1200px]:px-3.5 max-[1200px]:pt-5 max-[1200px]:pb-3.5 max-[640px]:pt-[18px] max-[640px]:pb-3">
         <div className="flex items-center gap-3.5 max-[1200px]:gap-2">
           <h2 className="text-xl/normal font-bold tracking-[-0.7px] max-[1200px]:text-[17px]">
