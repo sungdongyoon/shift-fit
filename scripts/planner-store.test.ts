@@ -81,7 +81,10 @@ test("편집은 자동 저장하지 않고 저장 버튼 호출 때만 변경 �
   const { store, writes, read } = setup();
   await store.getState().loadSchedule(NOW);
   const employee = addEmployee(store);
-  store.getState().setOffTarget(9);
+  store.getState().saveEditor({
+    kind: "assignment", date: "2026-11-05", employee: store.getState().data.employees[0].id,
+    category: "off", typeId: "",
+  });
   store
     .getState()
     .saveEditor({
@@ -97,7 +100,7 @@ test("편집은 자동 저장하지 않고 저장 버튼 호출 때만 변경 �
   assert.equal(await store.getState().saveSchedule(), true);
   assert.equal(writes.length, 1);
   assert.equal(store.getState().revision, 1);
-  assert.equal(read().targets["2026-11"], 9);
+  assert.deepEqual(read().targets, {});
   assert.equal(getAssignment(read(), "2026-11-04", employee.id).memo, "교육");
   assert.equal(hasUnsavedChanges(store.getState()), false);
   assert.equal(await store.getState().saveSchedule(), false);
@@ -142,7 +145,10 @@ test("저장 중 새 편집은 지워지지 않으며 중복 저장과 이동은
   addEmployee(store);
   const submitted = store.getState().data;
   const pending = store.getState().saveSchedule();
-  store.getState().setOffTarget(9);
+  store.getState().saveEditor({
+    kind: "assignment", date: "2026-11-05", employee: store.getState().data.employees[0].id,
+    category: "off", typeId: "",
+  });
   assert.equal(await store.getState().saveSchedule(), false);
   store.getState().navigateMonth(1);
   assert.equal(store.getState().view.month, "2026-11");
@@ -150,7 +156,7 @@ test("저장 중 새 편집은 지워지지 않으며 중복 저장과 이동은
   assert.equal(await pending, true);
   assert.equal(calls, 1);
   assert.equal(store.getState().baseline, submitted);
-  assert.equal(store.getState().data.targets["2026-11"], 9);
+  assert.equal(store.getState().data.entries[`2026-11-05:${store.getState().data.employees[0].id}`].category, "off");
   assert.equal(hasUnsavedChanges(store.getState()), true);
   assert.ok(store.getState().toast?.undo);
   store.getState().undoLastChange();
@@ -183,7 +189,6 @@ test("저장하지 않고 이동하면 전역 직원과 월별 수정 모두 마
   const { store, writes } = setup();
   await store.getState().loadSchedule(NOW);
   addEmployee(store);
-  store.getState().setOffTarget(10);
   store.getState().navigateMonth(1);
   await store.getState().resolveNavigation("discard");
   assert.equal(store.getState().view.month, "2026-12");
@@ -233,7 +238,6 @@ test("불러오기 실패 상태는 편집을 차단하고 재시도로 회복�
       .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "차단", color: "#5686D6" }),
   );
   store.getState().loadExample();
-  store.getState().setOffTarget(10);
   assert.equal(store.getState().data.employees.length, 0);
   assert.deepEqual(store.getState().data.targets, {});
   fail = false;
@@ -285,7 +289,6 @@ test("타입 삭제는 마지막 배정을 보존하고 직원 삭제는 연결�
 test("미배정과 기타 메모는 분리되고 예시 데이터는 UUID로 DB 저장 가능하다", async () => {
   const { store, writes } = setup();
   await store.getState().loadSchedule(new Date(2026, 1, 1));
-  store.getState().setOffTarget(8);
   store.getState().loadExample();
   const data = store.getState().data;
   data.employees.forEach((employee) =>

@@ -40,6 +40,7 @@ export type Assignment = {
 export type Schedule = {
   version: 3;
   storeName?: string;
+  // 이전 버전 데이터를 손실 없이 저장하기 위한 호환 필드입니다. 현재 기능에서는 사용하지 않습니다.
   employeeOffTargets?: Record<string, Record<string, number | null>>;
   employees: Employee[];
   typesByMonth: Record<string, ShiftType[]>;
@@ -130,38 +131,6 @@ export const isEmployeeVisibleOn = (employee: Employee, date: string) =>
 
 export const employeesInMonth = <T extends Employee>(employees: T[], month: string) =>
   employees.filter((employee) => isEmployeeVisibleOn(employee, dateKey(month, daysInMonth(month))));
-
-// null은 고정된 휴무 기준이 없다는 명시적인 설정입니다.
-export const employeeOffTarget = (
-  data: Pick<Schedule, "targets" | "employeeOffTargets">,
-  month: string,
-  employeeId: string,
-): number | null => {
-  const settings = data.employeeOffTargets ?? {};
-  const sourceMonth = Object.keys(settings)
-    .filter((key) => key <= month && Object.hasOwn(settings[key], employeeId))
-    .sort()
-    .at(-1);
-  const target = sourceMonth ? settings[sourceMonth][employeeId] : data.targets[month] ?? DEFAULT_OFF_TARGET;
-
-  return target === null ? null : Math.min(target, daysInMonth(month));
-};
-
-// 작성한 월은 상속받은 기준을 고정해 두어 이전 월 수정으로 바뀌지 않게 합니다.
-export const snapshotEmployeeOffTargets = (data: Schedule, month: string): Schedule => {
-  if (!month) return data;
-
-  const existing = data.employeeOffTargets?.[month] ?? {};
-  const targets = { ...existing };
-
-  employeesInMonth(data.employees, month).forEach((employee) => {
-    if (!Object.hasOwn(targets, employee.id)) targets[employee.id] = employeeOffTarget(data, month, employee.id);
-  });
-
-  if (Object.keys(targets).length === Object.keys(existing).length) return data;
-
-  return { ...data, employeeOffTargets: { ...data.employeeOffTargets, [month]: targets } };
-};
 
 export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
   const month = date.slice(0, 7);

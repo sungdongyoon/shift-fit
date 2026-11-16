@@ -3,17 +3,13 @@ import { createStore } from "zustand/vanilla";
 import type { Editor } from "../lib/editor";
 import {
   createExampleSchedule,
-  applyMonthlyOffTargets,
   copyPreviousMonthTypes,
   removeScheduleEditor,
   saveScheduleEditor,
 } from "../lib/schedule-commands";
 import {
   dateKey,
-  snapshotEmployeeOffTargets,
   isEmployeeVisibleOn,
-  daysInMonth,
-  DEFAULT_OFF_TARGET,
   getAssignment,
   getMonthShiftTypes,
   initial,
@@ -68,9 +64,7 @@ type PlannerActions = {
   goToToday: () => void;
   selectEmployee: (employee: string) => void;
   clearSelection: () => void;
-  setOffTarget: (target: number) => void;
   saveStoreName: (name: string) => Promise<boolean>;
-  applyMonthlyOffTargets: (month: string, targets: Record<string, number | null>) => string | null;
   loadExample: () => void;
   copyPreviousMonthTypes: () => void;
   notify: (message: string) => void;
@@ -102,10 +96,8 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
     ) => {
       if (!editable()) return;
 
-      const snapshot = snapshotEmployeeOffTargets(data, get().view.month);
-
       set((state) => ({
-        data: snapshot,
+        data,
         toast: { message, undo: state.data },
         ...extra,
       }));
@@ -384,7 +376,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         try {
           if (!persistence) throw new Error("저장소 연결이 필요해요.");
 
-          // 마지막 저장본에서 이름만 바꿔 일정·직원·휴무 기준의 미저장 편집은 전송하지 않습니다.
+          // 마지막 저장본에서 이름만 바꿔 일정·직원의 미저장 편집은 전송하지 않습니다.
           const snapshot = { ...state.baseline, storeName: name };
           const result = await persistence.save(snapshot, state.revision, state.baseline);
 
@@ -413,36 +405,6 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
 
           return false;
         }
-      },
-      applyMonthlyOffTargets: (month, targets) => {
-        if (!editable() || month !== get().view.month) return "설정할 월을 다시 확인해 주세요.";
-
-        const result = applyMonthlyOffTargets(get().data, month, targets);
-
-        if (!result.ok) return result.error;
-
-        commit(result.data, result.message);
-
-        return null;
-      },
-      setOffTarget: (target) => {
-        if (!editable()) return;
-
-        const { data, view } = get();
-        if (
-          !view.month ||
-          !Number.isInteger(target) ||
-          target < 0 ||
-          target > daysInMonth(view.month) ||
-          (data.targets[view.month] ?? DEFAULT_OFF_TARGET) === target
-        ) {
-          return;
-        }
-
-        commit(
-          { ...data, targets: { ...data.targets, [view.month]: target } },
-          "월 휴무 기준을 변경했어요.",
-        );
       },
       copyPreviousMonthTypes: () => {
         if (!editable()) return;

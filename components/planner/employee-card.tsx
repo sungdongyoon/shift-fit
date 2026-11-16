@@ -6,15 +6,12 @@ import { usePlannerStore } from "@/providers/planner-provider";
 
 type EmployeeCardProps = {
   employee: EmployeeScheduleSummary;
-  target: number | null;
 };
 
-export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
+export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
   const isSelected = usePlannerStore((state) => state.view.selected === employee.id);
   const selectEmployee = usePlannerStore((state) => state.selectEmployee);
   const openEditor = usePlannerStore((state) => state.openEditor);
-
-  const offTargetSuffix = target === null ? "" : ` / ${target}`;
 
   return (
     <div
@@ -60,24 +57,17 @@ export const EmployeeCard = ({ employee, target }: EmployeeCardProps) => {
         {categories.map((category) => (
           <div
             key={category}
-            className="group/count flex flex-col gap-[5px]"
-            data-warning={
-              category === "off" && target !== null && Object.values(employee.counts).some((count) => count > 0) && employee.counts.off !== target
-            }
+            className="flex flex-col gap-[5px]"
           >
             <span className="text-[9px] text-content-tertiary min-[1600px]:text-[10px]">
               {labels[category]}
             </span>
-            <b className="text-xs/normal font-semibold whitespace-nowrap group-data-[warning=true]/count:font-bold group-data-[warning=true]/count:text-danger">
+            <b className="text-xs/normal font-semibold whitespace-nowrap">
               {employee.counts[category]}
-              <small className="text-[9px] font-normal text-content-tertiary group-data-[warning=true]/count:font-bold group-data-[warning=true]/count:text-danger">
-                {category === "off" ? offTargetSuffix : ""}
-              </small>
             </b>
           </div>
         ))}
       </div>
-      {target === null && <p className="mt-2 ml-[38px] text-[10px] text-content-tertiary">정해진 휴무 없음</p>}
     </div>
   );
 };

@@ -6,8 +6,6 @@ import {
 } from "./editor";
 import {
   assign,
-  employeesInMonth,
-  snapshotEmployeeOffTargets,
   isValidDate,
   isEmployeeVisibleOn,
   colors,
@@ -134,37 +132,6 @@ const saveEmployee = (
   };
 };
 
-export const applyMonthlyOffTargets = (
-  data: Schedule,
-  month: string,
-  targets: Record<string, number | null>,
-): CommandResult => {
-  const employees = new Set(employeesInMonth(data.employees, month).map((employee) => employee.id));
-  const days = daysInMonth(month);
-
-  if (!employees.size) return { ok: false, error: "이 달에 설정할 근무자가 없습니다." };
-
-  const valid = Object.entries(targets).every(([id, target]) => employees.has(id) &&
-    (target === null || (Number.isInteger(target) && target >= 0 && target <= days)),
-  );
-
-  if (!valid) return { ok: false, error: `휴무 횟수는 0~${days}회로 입력해 주세요.` };
-
-  const snapshot = snapshotEmployeeOffTargets(data, month);
-
-  return {
-    ok: true,
-    data: {
-      ...snapshot,
-      employeeOffTargets: {
-        ...snapshot.employeeOffTargets,
-        [month]: { ...snapshot.employeeOffTargets?.[month], ...targets },
-      },
-    },
-    message: "월별 휴무 기준을 적용했어요. 캘린더 저장 버튼으로 저장해 주세요.",
-  };
-};
-
 const saveAssignment = (
   data: Schedule,
   month: string,
@@ -212,22 +179,14 @@ export const saveScheduleEditor = (
   editor: Editor,
   createId: CreateId = () => crypto.randomUUID(),
 ): CommandResult => {
-  const snapshot = snapshotEmployeeOffTargets(data, month);
-  let result: CommandResult;
-
   switch (editor.kind) {
     case "type":
-      result = saveShiftType(snapshot, month, editor, createId);
-      break;
+      return saveShiftType(data, month, editor, createId);
     case "employee":
-      result = saveEmployee(snapshot, month, editor, createId);
-      break;
+      return saveEmployee(data, month, editor, createId);
     case "assignment":
-      result = saveAssignment(snapshot, month, editor);
-      break;
+      return saveAssignment(data, month, editor);
   }
-
-  return result.ok ? { ...result, data: snapshotEmployeeOffTargets(result.data, month) } : result;
 };
 
 export const removeScheduleEditor = (

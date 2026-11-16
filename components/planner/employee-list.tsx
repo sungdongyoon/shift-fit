@@ -72,7 +72,7 @@ export const EmployeeList = () => {
                 className="mx-2 my-1 h-px bg-line max-[960px]:hidden"
               />
             )}
-            <EmployeeCard employee={employee} target={employee.offTarget} />
+            <EmployeeCard employee={employee} />
           </div>
         ))}
         {hasNoEmployees && (

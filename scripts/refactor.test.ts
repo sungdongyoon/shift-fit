@@ -12,7 +12,6 @@ import {
   saveScheduleEditor,
 } from "../lib/schedule-commands";
 import { createPlannerStore } from "../stores/planner-store";
-import { hasUnsavedChanges } from "../stores/planner-store";
 
 const employee = {
   id: "employee",
@@ -113,17 +112,6 @@ test("손상된 목록과 배열 형태의 저장 사전은 복원 과정에서 
   ]) {
     assert.throws(() => readSaved(JSON.stringify(invalid)));
   }
-});
-
-test("기본 휴무 기준 입력은 미저장 변경을 만들지 않는다", () => {
-  const store = createPlannerStore();
-  store.setState({
-    storageStatus: "saved",
-    view: { month: "2026-11", today: "2026-11-05", selected: "" },
-  });
-  store.getState().setOffTarget(8);
-  assert.equal(hasUnsavedChanges(store.getState()), false);
-  assert.equal(store.getState().toast, null);
 });
 
 test("직원 추가를 실행 취소하면 강조 상태도 해제한다", () => {

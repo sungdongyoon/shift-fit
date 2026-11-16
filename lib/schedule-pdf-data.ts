@@ -2,10 +2,8 @@ import { buildMonthCells, type CalendarRow } from "./calendar";
 import type { HolidayMap } from "./holidays";
 import {
   counts,
-  employeeOffTarget,
   employeesInMonth,
   isEmployeeVisibleOn,
-  DEFAULT_OFF_TARGET,
   getAssignment,
   getMonthShiftTypes,
   type Employee,
@@ -99,13 +97,11 @@ export const buildSchedulePdfData = (data: Schedule, month: string, holidays: Ho
     month,
     title: `${data.storeName?.trim() || "나의 매장"} ${year}.${String(monthNumber).padStart(2, "0")} 근무표`,
     filename: `shiftfit-${month}.pdf`,
-    target: data.targets[month] ?? DEFAULT_OFF_TARGET,
     shiftTypes: [...shiftTypes.values()].sort((first, second) => first.start.localeCompare(second.start)),
     calendars,
     employees: employees.map((employee) => ({
       ...employee,
       counts: counts(data, month, employee.id),
-      target: employeeOffTarget(data, month, employee.id),
     })),
   };
 };

@@ -217,11 +217,10 @@ const PdfEmployeeList = ({ data }: { data: SchedulePdfData }) => {
             근무자 명단 · 월별 횟수{index > 0 ? " (계속)" : ""}
           </Text>
           <Text style={styles.employeeSummary}>
-            근무자 {data.employees.length}명 · 휴무 기준은 근무자별로 적용
+            근무자 {data.employees.length}명
           </Text>
           <View style={styles.tableHeader}>
             <Text style={styles.employeeName}>이름</Text>
-            <Text style={styles.count}>휴무 기준</Text>
             {categories.map((category) => (
               <Text key={category} style={styles.count}>
                 {labels[category]}
@@ -231,24 +230,10 @@ const PdfEmployeeList = ({ data }: { data: SchedulePdfData }) => {
           {employees.map((employee) => (
             <View key={employee.id} style={styles.tableRow}>
               <Text style={styles.employeeName}>{employee.name}</Text>
-              <Text style={styles.count}>{employee.target === null ? "정해진 휴무 없음" : `${employee.target}일`}</Text>
               {categories.map((category) => (
                 <Text
                   key={category}
-                  style={[
-                    styles.count,
-                    {
-                      color:
-                        category === "off" &&
-                        employee.target !== null && employee.counts.off !== employee.target
-                          ? pdfColors.danger
-                          : pdfColors.ink,
-                      fontWeight:
-                        category === "off" && employee.target !== null && employee.counts.off > employee.target
-                          ? 600
-                          : 400,
-                    },
-                  ]}
+                  style={styles.count}
                 >
                   {employee.counts[category]}
                 </Text>

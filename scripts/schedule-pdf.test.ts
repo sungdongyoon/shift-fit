@@ -19,7 +19,7 @@ test("PDF는 선택한 월의 모든 직원과 다섯 종류의 횟수, 공휴�
   const output = buildSchedulePdfData(data, "2026-05", { "2026-05-05": "어린이날" });
 
   assert.equal(output.filename, "shiftfit-2026-05.pdf");
-  assert.equal(output.target, 9);
+  assert.equal("target" in output, false);
   assert.equal(output.employees.length, 2);
   assert.deepEqual(output.employees.map((person) => person.id), [employee.id, "past"]);
   assert.deepEqual(output.employees[0].counts, { work: 1, off: 0, leave: 1, other: 1, unassigned: 28 });
