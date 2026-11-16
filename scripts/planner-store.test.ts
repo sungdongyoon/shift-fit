@@ -314,3 +314,31 @@ test("로그아웃 같은 외부 이동도 저장·취소 선택이 끝난 뒤�
   await store.getState().resolveNavigation("save");
   assert.equal(left, true);
 });
+
+test("미저장 내용 없는 로그아웃은 첫 이동 요청에서 한 번 실행한다", async () => {
+  const { store } = setup();
+  await store.getState().loadSchedule(NOW);
+  let calls = 0;
+  store.getState().requestLeave("로그아웃", () => { calls++; });
+  assert.equal(calls, 1);
+  assert.equal(store.getState().pendingNavigation, null);
+  await store.getState().resolveNavigation("save");
+  assert.equal(calls, 1);
+});
+
+test("로그아웃 전 저장 실패는 이동을 보류하고 재시도 성공 후 한 번만 실행한다", async () => {
+  const { store, fail } = setup();
+  await store.getState().loadSchedule(NOW);
+  addEmployee(store);
+  let calls = 0;
+  store.getState().requestLeave("로그아웃", () => { calls++; });
+  fail(true);
+  await store.getState().resolveNavigation("save");
+  assert.equal(calls, 0);
+  assert.ok(store.getState().pendingNavigation);
+  fail(false);
+  await store.getState().resolveNavigation("save");
+  assert.equal(calls, 1);
+  await store.getState().resolveNavigation("save");
+  assert.equal(calls, 1);
+});
