@@ -307,7 +307,10 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         const { data, view } = get();
         const result = saveScheduleEditor(data, view.month, editor);
         if (!result.ok) return result.error;
-        commit(result.data, result.message, { editor: null });
+        commit(result.data, result.message, {
+          editor: null,
+          ...(editor.kind === "employee" ? { view: { ...view, selected: "" } } : {}),
+        });
 
         return null;
       },

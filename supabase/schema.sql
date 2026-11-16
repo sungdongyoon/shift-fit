@@ -16,6 +16,7 @@ create table public.employees (
   color text not null check (color ~ '^#[0-9a-fA-F]{6}$'),
   registered_month date not null check (extract(day from registered_month) = 1),
   start_date date not null,
+  end_date date check (end_date is null or end_date >= start_date),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -86,6 +87,11 @@ begin
     join public.employees e on e.store_id = a.store_id and e.id = a.employee_id
     where a.store_id = new.store_id and a.employee_id = employee_key and a.work_date < e.start_date
   ) then raise exception 'ASSIGNMENT_BEFORE_START_DATE' using errcode = '23514'; end if;
+  if exists (
+    select 1 from public.assignments a
+    join public.employees e on e.store_id = a.store_id and e.id = a.employee_id
+    where a.store_id = new.store_id and a.employee_id = employee_key and a.work_date > e.end_date
+  ) then raise exception 'ASSIGNMENT_AFTER_END_DATE' using errcode = '23514'; end if;
   return null;
 end;
 $$;
@@ -171,6 +177,7 @@ create or replace function public.save_planner_changes(p_revision bigint, p_data
 language plpgsql security invoker set search_path = '' as $$
 declare
   current_store public.stores;
+  employee_changes jsonb;
 begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode = '42501'; end if;
   if p_revision is null or p_revision < 0 or p_data is null or
@@ -207,12 +214,19 @@ begin
   );
   delete from public.employees e where e.store_id = current_store.id and e.id in (select value::uuid from jsonb_array_elements_text(coalesce(p_data->'deleted_employees', '[]'::jsonb)));
 
-  insert into public.employees as e(id, store_id, name, color, registered_month, start_date, sort_order)
-  select x.id, current_store.id, x.name, x.color, x.registered_month, x.start_date, x.sort_order
-  from jsonb_to_recordset(p_data->'employees') as x(id uuid, name text, color text, registered_month date, start_date date, sort_order integer)
+  -- 퇴사일을 전송하지 않는 구버전 화면에서도 기존 퇴사일은 유지합니다.
+  -- 새 화면이 명시적으로 null을 보내면 퇴사 처리를 취소합니다.
+  select coalesce(jsonb_agg(jsonb_build_object('end_date', e.end_date) || item.value), '[]'::jsonb)
+  into employee_changes
+  from jsonb_array_elements(p_data->'employees') item
+  left join public.employees e on e.id = (item.value->>'id')::uuid and e.store_id = current_store.id;
+
+  insert into public.employees as e(id, store_id, name, color, registered_month, start_date, end_date, sort_order)
+  select x.id, current_store.id, x.name, x.color, x.registered_month, x.start_date, x.end_date, x.sort_order
+  from jsonb_to_recordset(employee_changes) as x(id uuid, name text, color text, registered_month date, start_date date, end_date date, sort_order integer)
   on conflict (id) do update set name = excluded.name, color = excluded.color,
-    registered_month = excluded.registered_month, start_date = excluded.start_date, sort_order = excluded.sort_order, updated_at = now()
-  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.start_date, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.start_date, excluded.sort_order);
+    registered_month = excluded.registered_month, start_date = excluded.start_date, end_date = excluded.end_date, sort_order = excluded.sort_order, updated_at = now()
+  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.start_date, e.end_date, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.start_date, excluded.end_date, excluded.sort_order);
 
   -- 구버전 화면의 공통 휴무 변경은 기존 공통 기준을 쓰던 직원에게만 반영합니다.
   if not (p_data ? 'employee_targets') then

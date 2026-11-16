@@ -44,6 +44,7 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
             openEditor({
               kind: "employee",
               startDate: employeeStartDate(employee),
+              endDate: employee.endDate ?? "",
               id: employee.id,
               name: employee.name,
               color: employee.color,

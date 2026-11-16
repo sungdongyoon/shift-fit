@@ -24,6 +24,8 @@ const databaseError = (code?: string, message?: string) => {
     return {
       error: "근무표 접근 권한을 확인해 주세요. 다시 로그인해야 할 수 있어요.",
     };
+  if (message?.includes("ASSIGNMENT_AFTER_END_DATE"))
+    return { error: "퇴사일 이후에 배정된 일정이 있어요. 근무표를 새로 불러와 확인해 주세요." };
   if (message?.includes("ASSIGNMENT_BEFORE_START_DATE"))
     return { error: "근무 시작일 이전에 배정된 일정이 있어요. 시작일과 일정을 확인해 주세요." };
   if (code === "23505")

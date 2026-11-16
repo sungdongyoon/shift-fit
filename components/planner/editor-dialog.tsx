@@ -23,6 +23,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
     error: "",
   });
 
+  const entries = usePlannerStore((state) => state.data.entries);
   const saveEditor = usePlannerStore((state) => state.saveEditor);
   const removeEditor = usePlannerStore((state) => state.removeEditor);
   const close = usePlannerStore((state) => state.closeEditor);
@@ -41,6 +42,18 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
       if (hasChanges && !window.confirm(
         `‘${initial.name}’ 근무 타입을 변경하면 선택한 월에 이미 배정된 일정의 이름·시간·색상에 반영됩니다. 다른 월은 변경되지 않습니다. 변경할까요?`,
       )) return;
+    }
+
+    if (initial.kind === "employee" && draft.kind === "employee" && initial.id &&
+      (initial.endDate ?? "") !== (draft.endDate ?? "")) {
+      const count = Object.keys(entries).filter((key) =>
+        key.endsWith(`:${initial.id}`) && key.slice(0, 10) > (draft.endDate ?? ""),
+      ).length;
+      const confirmation = draft.endDate
+        ? `‘${initial.name}’ 근무자를 ${draft.endDate} 퇴사로 처리할까요? 퇴사일 당일까지 표시되며, 다른 월을 포함한 퇴사일 이후 배정 ${count}건이 삭제됩니다. 상단 저장 버튼으로 저장해 주세요.`
+        : `‘${initial.name}’ 근무자의 퇴사 처리를 취소할까요? 이미 저장해 삭제한 일정은 복원되지 않습니다.`;
+
+      if (!window.confirm(confirmation)) return;
     }
 
     const message = saveEditor(draft);
@@ -64,6 +77,13 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
   };
 
   const canRemove = canRemoveEditor(draft);
+  const hasRetirementChange = initial.kind === "employee" && draft.kind === "employee" &&
+    (initial.endDate ?? "") !== (draft.endDate ?? "");
+  let submitLabel = "적용";
+
+  if (hasRetirementChange && draft.kind === "employee") {
+    submitLabel = draft.endDate ? "퇴사 처리" : "퇴사 처리 취소";
+  }
 
   return (
     <form
@@ -99,7 +119,7 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
           취소
         </Button>
         <Button type="submit" size="sm" className="text-xs/normal">
-          적용
+          {submitLabel}
         </Button>
       </div>
     </form>

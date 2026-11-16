@@ -25,6 +25,7 @@ export type Employee = {
   color: string;
   from: string;
   startDate?: string;
+  endDate?: string;
   until?: string;
   legacyOffThrough?: string;
 };
@@ -127,10 +128,13 @@ export const employeeStartDate = (employee: Employee) =>
   employee.startDate ?? `${employee.from}-01`;
 
 export const isEmployeeVisibleOn = (employee: Employee, date: string) =>
-  employeeStartDate(employee) <= date;
+  employeeStartDate(employee) <= date && (!employee.endDate || date <= employee.endDate);
 
 export const employeesInMonth = <T extends Employee>(employees: T[], month: string) =>
-  employees.filter((employee) => isEmployeeVisibleOn(employee, dateKey(month, daysInMonth(month))));
+  employees.filter((employee) =>
+    employeeStartDate(employee) <= dateKey(month, daysInMonth(month)) &&
+    (!employee.endDate || employee.endDate >= `${month}-01`),
+  );
 
 export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
   const month = date.slice(0, 7);
@@ -241,6 +245,9 @@ const isValidEmployee = (value: unknown): value is Employee => {
     typeof value.from === "string" &&
     /^\d{4}-\d{2}$/.test(value.from) &&
     (value.startDate === undefined || (typeof value.startDate === "string" && isValidDate(value.startDate))) &&
+    (value.endDate === undefined ||
+      (typeof value.endDate === "string" && isValidDate(value.endDate) &&
+        value.endDate >= (value.startDate ?? `${value.from}-01`))) &&
     (value.legacyOffThrough === undefined ||
       (typeof value.legacyOffThrough === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value.legacyOffThrough)))
   );

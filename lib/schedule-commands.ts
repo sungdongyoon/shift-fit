@@ -102,6 +102,15 @@ const saveEmployee = (
     return { ok: false, error: "올바른 근무 시작일을 입력해 주세요." };
   }
 
+  const existing = data.employees.find((employee) => employee.id === editor.id);
+  const endDate = Object.hasOwn(editor, "endDate")
+    ? editor.endDate || undefined
+    : existing?.endDate;
+
+  if (endDate && (!isValidDate(endDate) || endDate < editor.startDate)) {
+    return { ok: false, error: "퇴사일은 근무 시작일보다 빠를 수 없어요." };
+  }
+
   const hasEarlierAssignment = editor.id && Object.keys(data.entries).some(
     (key) => key.endsWith(`:${editor.id}`) && key.slice(0, 10) < editor.startDate,
   );
@@ -118,14 +127,28 @@ const saveEmployee = (
     startDate: editor.startDate,
   };
   const employees = editor.id
-    ? data.employees.map((item) => (
-      item.id === editor.id ? { ...item, name, color: editor.color, startDate: editor.startDate } : item
-    ))
+    ? data.employees.map((item) => {
+      if (item.id !== editor.id) return item;
+
+      const updated = { ...item, name, color: editor.color, startDate: editor.startDate };
+      if (endDate) updated.endDate = endDate;
+      else delete updated.endDate;
+
+      return updated;
+    })
     : [...data.employees, employee];
 
   return {
     ok: true,
-    data: { ...data, employees },
+    data: {
+      ...data,
+      employees,
+      entries: endDate
+        ? Object.fromEntries(Object.entries(data.entries).filter(([key]) =>
+          !key.endsWith(`:${editor.id}`) || key.slice(0, 10) <= endDate,
+        ))
+        : data.entries,
+    },
     message: editor.id
       ? "근무자 정보를 수정했어요."
       : "근무자를 추가했어요. 근무 시작일부터 미배정으로 표시돼요.",
@@ -148,7 +171,7 @@ const saveAssignment = (
   }
 
   if (!isEmployeeVisibleOn(employee, editor.date)) {
-    return { ok: false, error: "근무 시작일 이전에는 일정을 배정할 수 없어요." };
+    return { ok: false, error: "근무 시작일 이전이나 퇴사일 이후에는 일정을 배정할 수 없어요." };
   }
 
   const currentShift = getAssignment(data, editor.date, editor.employee).shift;
