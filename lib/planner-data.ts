@@ -18,6 +18,7 @@ type EmployeeRow = {
   registered_month: string;
   start_date: string;
   end_date?: string | null;
+  position?: string | null;
   sort_order: number;
 };
 type MonthRow = { month: string; off_target: number };
@@ -121,6 +122,7 @@ export const toPlannerPayload = (input: unknown): PlannerPayload => {
       registered_month: `${employee.from}-01`,
       start_date: employeeStartDate(employee),
       end_date: employee.endDate ?? null,
+      position: employee.position?.trim() || null,
       sort_order,
     });
   });
@@ -253,6 +255,7 @@ export const fromPlannerRows = (input: unknown): PlannerSnapshot => {
     from: employee.registered_month.slice(0, 7),
     startDate: employee.start_date,
     ...(employee.end_date ? { endDate: employee.end_date } : {}),
+    ...(employee.position ? { position: employee.position } : {}),
   }));
   rows.months.forEach((row) => {
     const month = row.month.slice(0, 7);

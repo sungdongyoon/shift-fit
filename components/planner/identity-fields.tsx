@@ -34,6 +34,15 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
     />
     {editor.kind === "employee" && (
       <TextField
+        label="직급 (선택)"
+        placeholder="예: 매니저, 점장, 스태프"
+        maxLength={30}
+        value={editor.position ?? ""}
+        onChange={(event) => onChange({ ...editor, position: event.target.value })}
+      />
+    )}
+    {editor.kind === "employee" && (
+      <TextField
         label="근무 시작일 (필수)"
         type="date"
         required

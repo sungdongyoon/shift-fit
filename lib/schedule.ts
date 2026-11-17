@@ -24,6 +24,7 @@ export type Employee = {
   name: string;
   color: string;
   from: string;
+  position?: string;
   startDate?: string;
   endDate?: string;
   until?: string;
@@ -241,6 +242,7 @@ const isValidEmployee = (value: unknown): value is Employee => {
   return (
     typeof value.id === "string" &&
     typeof value.name === "string" &&
+    (value.position === undefined || (typeof value.position === "string" && value.position.length <= 30)) &&
     isValidColor(value.color) &&
     typeof value.from === "string" &&
     /^\d{4}-\d{2}$/.test(value.from) &&

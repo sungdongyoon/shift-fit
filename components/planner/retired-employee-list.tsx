@@ -22,6 +22,7 @@ export const RetiredEmployeeList = ({ open, onOpenChange, employees }: RetiredEm
       color: employee.color,
       startDate: employeeStartDate(employee),
       endDate: employee.endDate,
+      position: employee.position ?? "",
     });
   };
 
@@ -31,7 +32,10 @@ export const RetiredEmployeeList = ({ open, onOpenChange, employees }: RetiredEm
         {employees.map((employee) => (
           <div key={employee.id} className="flex items-center justify-between gap-3 py-3">
             <div className="min-w-0">
-              <p className="break-words text-xs font-semibold">{employee.name}</p>
+              <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 break-words">
+                <span className="text-xs font-semibold">{employee.name}</span>
+                {employee.position && <span className="text-[10px] text-content-tertiary [overflow-wrap:anywhere]">{employee.position}</span>}
+              </p>
               <p className="mt-1 text-[11px] text-content-tertiary">
                 {employeeStartDate(employee)} ~ {employee.endDate}
               </p>

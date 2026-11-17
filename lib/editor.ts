@@ -14,6 +14,7 @@ export type EmployeeEditor = {
   kind: "employee";
   startDate: string;
   endDate?: string;
+  position?: string;
   id?: string;
   name: string;
   color: string;

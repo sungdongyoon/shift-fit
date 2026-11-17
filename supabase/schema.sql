@@ -17,6 +17,7 @@ create table public.employees (
   registered_month date not null check (extract(day from registered_month) = 1),
   start_date date not null,
   end_date date check (end_date is null or end_date >= start_date),
+  position text check (position is null or char_length(btrim(position)) between 1 and 30),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -214,19 +215,19 @@ begin
   );
   delete from public.employees e where e.store_id = current_store.id and e.id in (select value::uuid from jsonb_array_elements_text(coalesce(p_data->'deleted_employees', '[]'::jsonb)));
 
-  -- 퇴사일을 전송하지 않는 구버전 화면에서도 기존 퇴사일은 유지합니다.
+  -- 새 필드를 전송하지 않는 구버전 화면에서도 기존 퇴사일과 직급은 유지합니다.
   -- 새 화면이 명시적으로 null을 보내면 퇴사 처리를 취소합니다.
-  select coalesce(jsonb_agg(jsonb_build_object('end_date', e.end_date) || item.value), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('end_date', e.end_date, 'position', e.position) || item.value), '[]'::jsonb)
   into employee_changes
   from jsonb_array_elements(p_data->'employees') item
   left join public.employees e on e.id = (item.value->>'id')::uuid and e.store_id = current_store.id;
 
-  insert into public.employees as e(id, store_id, name, color, registered_month, start_date, end_date, sort_order)
-  select x.id, current_store.id, x.name, x.color, x.registered_month, x.start_date, x.end_date, x.sort_order
-  from jsonb_to_recordset(employee_changes) as x(id uuid, name text, color text, registered_month date, start_date date, end_date date, sort_order integer)
+  insert into public.employees as e(id, store_id, name, color, registered_month, start_date, end_date, position, sort_order)
+  select x.id, current_store.id, x.name, x.color, x.registered_month, x.start_date, x.end_date, nullif(btrim(x.position), ''), x.sort_order
+  from jsonb_to_recordset(employee_changes) as x(id uuid, name text, color text, registered_month date, start_date date, end_date date, position text, sort_order integer)
   on conflict (id) do update set name = excluded.name, color = excluded.color,
-    registered_month = excluded.registered_month, start_date = excluded.start_date, end_date = excluded.end_date, sort_order = excluded.sort_order, updated_at = now()
-  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.start_date, e.end_date, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.start_date, excluded.end_date, excluded.sort_order);
+    registered_month = excluded.registered_month, start_date = excluded.start_date, end_date = excluded.end_date, position = excluded.position, sort_order = excluded.sort_order, updated_at = now()
+  where e.store_id = excluded.store_id and (e.name, e.color, e.registered_month, e.start_date, e.end_date, e.position, e.sort_order) is distinct from (excluded.name, excluded.color, excluded.registered_month, excluded.start_date, excluded.end_date, excluded.position, excluded.sort_order);
 
   -- 구버전 화면의 공통 휴무 변경은 기존 공통 기준을 쓰던 직원에게만 반영합니다.
   if not (p_data ? 'employee_targets') then

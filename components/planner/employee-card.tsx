@@ -34,9 +34,16 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
           >
             {employee.name.slice(0, 1)}
           </span>
-          <strong className="text-xs/normal font-semibold [overflow-wrap:anywhere]">
-            {employee.name}
-          </strong>
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1">
+            <strong className="text-xs/normal font-semibold [overflow-wrap:anywhere]">
+              {employee.name}
+            </strong>
+            {employee.position && (
+              <span className="text-[10px] font-normal text-content-tertiary [overflow-wrap:anywhere]">
+                {employee.position}
+              </span>
+            )}
+          </span>
         </button>
         <button
           className="ml-auto h-[26px] w-6 border-0 bg-transparent text-xl/normal text-content-tertiary"
@@ -46,6 +53,7 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
               kind: "employee",
               startDate: employeeStartDate(employee),
               endDate: employee.endDate ?? "",
+              position: employee.position ?? "",
               id: employee.id,
               name: employee.name,
               color: employee.color,

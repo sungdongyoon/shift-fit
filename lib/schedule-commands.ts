@@ -103,6 +103,14 @@ const saveEmployee = (
   }
 
   const existing = data.employees.find((employee) => employee.id === editor.id);
+  const position = Object.hasOwn(editor, "position")
+    ? editor.position?.trim() || undefined
+    : existing?.position;
+
+  if (position && position.length > 30) {
+    return { ok: false, error: "직급은 30자 이내로 입력해 주세요." };
+  }
+
   const endDate = Object.hasOwn(editor, "endDate")
     ? editor.endDate || undefined
     : existing?.endDate;
@@ -125,12 +133,16 @@ const saveEmployee = (
     color: editor.color,
     from: month,
     startDate: editor.startDate,
+    ...(position ? { position } : {}),
   };
   const employees = editor.id
     ? data.employees.map((item) => {
       if (item.id !== editor.id) return item;
 
       const updated = { ...item, name, color: editor.color, startDate: editor.startDate };
+      if (position) updated.position = position;
+      else delete updated.position;
+
       if (endDate) updated.endDate = endDate;
       else delete updated.endDate;
 
