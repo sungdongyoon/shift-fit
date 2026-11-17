@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
 import { counts, employeesInMonth, getMonthShiftTypes } from "@/lib/schedule";
+import { monthlyWorkMinutes } from "@/lib/work-time";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 export const useEmployees = () =>
@@ -34,11 +35,12 @@ export const useMonthSchedule = () => {
   const entries = usePlannerStore((state) => state.data.entries);
   const employees = useEmployees();
 
-  // 현재 월의 실제 배정 횟수만 집계합니다.
+  // 현재 월의 배정 횟수와 근무 시간을 계산하며 별도로 저장하지 않습니다.
   const stats = useMemo(
     () => employees.map((employee) => ({
       ...employee,
       counts: counts({ entries, employees }, month, employee.id),
+      workMinutes: monthlyWorkMinutes({ entries }, month, employee),
     })),
     [entries, month, employees],
   );

@@ -2,10 +2,11 @@
 
 import { BsThreeDots } from "react-icons/bs";
 import { categories, employeeStartDate, labels, type EmployeeScheduleSummary } from "@/lib/schedule";
+import { formatWorkTime } from "@/lib/work-time";
 import { usePlannerStore } from "@/providers/planner-provider";
 
 type EmployeeCardProps = {
-  employee: EmployeeScheduleSummary;
+  employee: EmployeeScheduleSummary & { workMinutes: number; };
 };
 
 export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
@@ -68,6 +69,13 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
             </b>
           </div>
         ))}
+      </div>
+      <div
+        className="mt-3 ml-[38px] flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[1200px]:ml-0 max-[960px]:ml-[38px] max-[640px]:ml-0"
+        title="배정된 근무 타입의 시작·종료 시간 기준이며 휴게시간은 차감하지 않습니다."
+      >
+        <span className="text-[10px] text-content-tertiary">이번 달 근무 시간</span>
+        <b className="text-xs/normal font-semibold tabular-nums">{formatWorkTime(employee.workMinutes)}</b>
       </div>
     </div>
   );
