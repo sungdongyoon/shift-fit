@@ -17,7 +17,6 @@ const sample = (): Schedule => ({
     "2026-11-03:employee": { category: "off" },
     "2026-11-04:employee": { category: "leave" },
     "2026-11-05:employee": { category: "other" },
-    "2026-11-06:employee": { category: "unassigned" },
     "2026-11-30:employee": { category: "work", shift: { ...shift, start: "23:00", end: "02:00" } },
     "2026-12-01:employee": { category: "work", shift: { ...shift } },
     "2026-11-01:other": { category: "work", shift: { ...shift } },

@@ -16,10 +16,10 @@ const identityDescription = (editor: EmployeeEditor | ShiftTypeEditor) => {
   }
 
   if (editor.id) {
-    return "퇴사일 당일까지 캘린더에 표시됩니다. 퇴사 처리 시 이후 배정은 확인 후 삭제됩니다. 근무자 삭제는 모든 월의 기록을 삭제합니다.";
+    return "퇴사일 당일까지 일정을 배정할 수 있습니다. 퇴사 처리 시 이후 배정은 확인 후 삭제됩니다. 근무자 삭제는 모든 월의 기록을 삭제합니다.";
   }
 
-  return "근무 시작일부터 캘린더에 표시됩니다. 시작일 이전은 집계하지 않으며, 일정이 없는 날짜는 미배정으로 시작합니다.";
+  return "근무 시작일 이후 날짜의 + 버튼으로 일정을 배정할 수 있습니다. 배정한 날짜에만 캘린더에 표시됩니다.";
 };
 
 export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (

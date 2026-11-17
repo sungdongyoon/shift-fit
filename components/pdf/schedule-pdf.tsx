@@ -10,7 +10,7 @@ import {
 import type { SchedulePdfData } from "@/lib/schedule-pdf-data";
 import { pdfColors, pdfStyles as styles } from "./schedule-pdf-styles";
 
-const NON_WORK_CATEGORIES = ["off", "leave", "other", "unassigned"] as const;
+const NON_WORK_CATEGORIES = ["off", "leave", "other"] as const;
 const EMPLOYEES_PER_TABLE = 20;
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];

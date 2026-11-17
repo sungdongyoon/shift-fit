@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, type ComponentPropsWithRef } from "react";
-import { Icon } from "./icon";
+import { FaChevronDown } from "react-icons/fa6";
 
 export type SelectProps = Omit<ComponentPropsWithRef<"select">, "children"> & {
   label: string;
@@ -58,8 +58,8 @@ export const Select = ({
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute top-3 right-3 text-content-secondary">
-          <Icon name="chevron-down" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-content-secondary">
+          <FaChevronDown className="size-3" />
         </span>
       </div>
       {message && (

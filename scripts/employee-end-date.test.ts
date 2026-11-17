@@ -41,8 +41,8 @@ test("퇴사일 당일까지 노출하며 월 중 퇴사자도 해당 월 명단
   assert.equal(employeesInMonth([retired], "2026-10").length, 1);
   assert.equal(employeesInMonth([retired], "2026-11").length, 1);
   assert.equal(employeesInMonth([retired], "2026-12").length, 0);
-  assert.deepEqual(counts(data, "2026-11", employee.id), { work: 0, off: 1, leave: 0, other: 0, unassigned: 14 });
-  assert.equal(counts(data, "2026-12", employee.id).unassigned, 0);
+  assert.deepEqual(counts(data, "2026-11", employee.id), { work: 0, off: 1, leave: 0, other: 0 });
+  assert.equal(counts(data, "2026-12", employee.id).work, 0);
 });
 
 test("다른 월을 포함한 퇴사일 이후 배정만 삭제하고 다른 직원 기록은 유지한다", () => {
@@ -77,7 +77,7 @@ test("PDF도 퇴사일 당일까지만 이름과 횟수를 표시한다", () => 
   const days = pdf.calendars[0].weeks.flat();
   assert.equal(days.find((day) => day.date === "2026-11-15")!.rows.length, 1);
   assert.equal(days.find((day) => day.date === "2026-11-16")!.rows.length, 0);
-  assert.equal(pdf.employees[0].counts.unassigned, 14);
+  assert.equal(pdf.employees[0].counts.off, 1);
 });
 
 test("퇴사일과 삭제 배정을 함께 저장하며 DB 왕복에서 퇴사일이 유지된다", () => {

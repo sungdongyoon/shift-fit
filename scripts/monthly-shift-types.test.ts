@@ -64,7 +64,7 @@ test("이전 월 복사는 새 ID로 타입만 추가하며 기존 배정과 원
 
   assert.equal(edited.data.typesByMonth["2026-11"][2].end, "23:00");
   assert.equal(
-    getAssignment(edited.data, "2026-11-04", employee.id).shift?.end,
+    getAssignment(edited.data, "2026-11-04", employee.id)!.shift?.end,
     "23:00",
   );
 });
@@ -116,11 +116,11 @@ test("같은 ID라도 수정·삭제는 선택한 월에만 적용하고 다른 
   if (!result.ok) throw new Error(result.error);
 
   assert.equal(
-    getAssignment(result.data, "2026-12-04", employee.id).shift?.end,
+    getAssignment(result.data, "2026-12-04", employee.id)!.shift?.end,
     "22:00",
   );
   assert.deepEqual(
-    getAssignment(result.data, "2026-11-04", employee.id).shift,
+    getAssignment(result.data, "2026-11-04", employee.id)!.shift,
     DEFAULT_SHIFT_TYPES[2],
   );
   const removed = removeScheduleEditor(result.data, "2026-12", {
@@ -130,7 +130,7 @@ test("같은 ID라도 수정·삭제는 선택한 월에만 적용하고 다른 
   assert.equal(removed.data.typesByMonth["2026-12"][2].archived, true);
   assert.equal(removed.data.typesByMonth["2026-11"][2].archived, undefined);
   assert.equal(
-    getAssignment(removed.data, "2026-12-04", employee.id).shift?.end,
+    getAssignment(removed.data, "2026-12-04", employee.id)!.shift?.end,
     "22:00",
   );
 });

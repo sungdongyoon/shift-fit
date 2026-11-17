@@ -1,3 +1,9 @@
+import {
+  applyBatchAssignments,
+  planBatchAssignments,
+  type BatchAssignmentContext,
+  type BatchAssignmentRequest,
+} from "../lib/batch-assignments";
 import type { PlannerPersistence } from "../lib/planner-data";
 import { createStore } from "zustand/vanilla";
 import type { Editor } from "../lib/editor";
@@ -9,6 +15,7 @@ import {
 } from "../lib/schedule-commands";
 import {
   dateKey,
+  employeesInMonth,
   isEmployeeVisibleOn,
   getAssignment,
   getMonthShiftTypes,
@@ -39,6 +46,7 @@ export type PlannerState = {
   data: Schedule;
   view: ViewState;
   editor: Editor | null;
+  batchAssignment: BatchAssignmentContext | null;
   toast: ToastState;
   storageStatus: StorageStatus;
   baseline: Schedule;
@@ -57,6 +65,9 @@ type PlannerActions = {
   openEditor: (editor: Editor) => void;
   closeEditor: () => void;
   addAssignment: (date: string) => void;
+  openBatchAssignment: (date?: string) => void;
+  closeBatchAssignment: () => void;
+  saveBatchAssignment: (request: BatchAssignmentRequest) => string | null;
   editAssignment: (date: string, employee: string) => void;
   saveEditor: (editor: Editor) => string | null;
   removeEditor: (editor: Editor) => void;
@@ -113,6 +124,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
       pendingNavigation: null,
       view: { month: "", today: "", selected: "" },
       editor: null,
+      batchAssignment: null,
       toast: null,
       storageStatus: "loading",
       loadSchedule: (now = new Date()) => {
@@ -148,6 +160,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
               persistenceError: null,
               conflict: false,
               editor: null,
+              batchAssignment: null,
               toast: null,
             });
           } catch {
@@ -243,40 +256,67 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         if (choice === "save") {
           if (!(await get().saveSchedule()) || hasUnsavedChanges(get())) return;
         } else {
-          set((state) => ({ data: state.baseline, editor: null, toast: null }));
+          set((state) => ({ data: state.baseline, editor: null, batchAssignment: null, toast: null }));
         }
         set({ pendingNavigation: null });
         pending.proceed();
       },
       openEditor: (editor) => {
-        if (editable()) set({ editor });
+        if (editable()) set({ editor, batchAssignment: null });
       },
       closeEditor: () => set({ editor: null }),
-      addAssignment: (date) => {
+      addAssignment: (date) => get().openBatchAssignment(date),
+      openBatchAssignment: (date) => {
         if (!editable()) return;
 
-        const { data, view, notify, openEditor } = get();
-        const employees = data.employees.filter((employee) => isEmployeeVisibleOn(employee, date));
+        const { data, view, notify } = get();
+        if (!view.month || (date && date.slice(0, 7) !== view.month)) return;
+
+        const employees = employeesInMonth(data.employees, view.month).filter(
+          (employee) => !date || (
+            isEmployeeVisibleOn(employee, date) && !getAssignment(data, date, employee.id)
+          ),
+        );
         if (!employees.length) {
-          notify("해당 날짜에 근무를 시작한 근무자가 없어요. 근무 시작일을 확인해 주세요.");
+          notify("추가할 수 있는 근무자가 없어요. 기존 배정과 재직 기간을 확인해 주세요.");
 
           return;
         }
 
-        const types = getMonthShiftTypes(data, view.month).filter(
-          (type) => !type.archived,
-        );
-        const selectedEmployee = employees.find(
-          (employee) => employee.id === view.selected,
+        const selected = employees.find((employee) => employee.id === view.selected);
+        set({
+          editor: null,
+          batchAssignment: {
+            month: view.month,
+            ...(date ? { date } : {}),
+            employeeIds: selected ? [selected.id] : [],
+          },
+        });
+      },
+      closeBatchAssignment: () => set({ batchAssignment: null }),
+      saveBatchAssignment: (request) => {
+        if (!editable()) return "근무표를 불러온 뒤 수정해 주세요.";
+
+        const { data, view, batchAssignment } = get();
+        if (
+          !batchAssignment || request.month !== view.month || request.month !== batchAssignment.month ||
+          (batchAssignment.date && request.dates.some((date) => date !== batchAssignment.date))
+        ) {
+          return "배정 창을 다시 열어 주세요.";
+        }
+
+        const result = planBatchAssignments(data, request);
+        if (!result.ok) return result.error;
+        if (!result.plan.additions.length) return "추가할 일정이 없어요. 기존 배정과 재직 기간을 확인해 주세요.";
+
+        const skipped = result.plan.existingCount + result.plan.outsideEmploymentCount;
+        commit(
+          applyBatchAssignments(data, result.plan),
+          `${result.plan.additions.length}건을 추가했어요. ${skipped}건은 건너뛰었어요. 상단 저장 버튼으로 저장해 주세요.`,
+          { batchAssignment: null },
         );
 
-        openEditor({
-          kind: "assignment",
-          date,
-          employee: selectedEmployee?.id ?? employees[0].id,
-          category: "unassigned",
-          typeId: types[0]?.id ?? "",
-        });
+        return null;
       },
       editAssignment: (date, employee) => {
         if (!editable()) return;
@@ -287,6 +327,8 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
         if (!person || !isEmployeeVisibleOn(person, date)) return;
 
         const assignment = getAssignment(data, date, employee);
+        if (!assignment) return;
+
         openEditor({
           kind: "assignment",
           date,
@@ -336,6 +378,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
           set((state) => ({
             view: { ...state.view, month: target, selected: "" },
             editor: null,
+            batchAssignment: null,
             toast: null,
           })),
         );
@@ -349,6 +392,7 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
           set((state) => ({
             view: { ...state.view, month, selected: "" },
             editor: null,
+            batchAssignment: null,
             toast: null,
           })),
         );

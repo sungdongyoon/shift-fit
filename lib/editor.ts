@@ -53,7 +53,7 @@ export const editorFormReducer = (
 
 export const canRemoveEditor = (editor: Editor) => {
   if (editor.kind === "assignment") {
-    return false;
+    return Boolean(editor.original);
   }
 
   return Boolean(editor.id);
@@ -61,6 +61,6 @@ export const canRemoveEditor = (editor: Editor) => {
 
 export const editorDeleteLabels: Record<Editor["kind"], string> = {
   employee: "삭제",
-  assignment: "삭제 → 휴무",
+  assignment: "배정 삭제",
   type: "타입 삭제",
 };

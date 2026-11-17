@@ -60,7 +60,7 @@ create table public.assignments (
   employee_id uuid not null,
   work_date date not null,
   month date generated always as (date_trunc('month', work_date::timestamp)::date) stored,
-  category text not null check (category in ('work', 'off', 'leave', 'other', 'unassigned')),
+  category text not null check (category in ('work', 'off', 'leave', 'other')),
   shift_type_id uuid,
   memo text check (memo is null or (category = 'other' and char_length(memo) <= 200)),
   created_at timestamptz not null default now(),

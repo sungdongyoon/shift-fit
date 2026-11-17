@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { canRemoveEditor, editorDeleteLabels, editorFormReducer, type Editor } from "@/lib/editor";
 import { usePlannerStore } from "@/providers/planner-provider";
+import { BatchAssignmentDialog } from "./batch-assignment-dialog";
 import { AssignmentFields } from "./assignment-fields";
 import { IdentityFields } from "./identity-fields";
 
@@ -64,6 +65,10 @@ const EditorForm = ({ initial }: { initial: Editor; }) => {
     if (!canRemoveEditor(draft)) return;
 
     let message = "";
+
+    if (initial.kind === "assignment") {
+      message = "해당 날짜의 배정을 삭제할까요? 삭제하면 캘린더에서 이름표가 사라집니다.";
+    }
 
     if (initial.kind === "employee") {
       message = `‘${initial.name}’ 근무자를 삭제하면 다른 월을 포함한 모든 일정과 근무자 명단에서 해당 근무자의 정보가 삭제됩니다. 삭제할까요?`;
@@ -131,15 +136,18 @@ export const EditorDialog = () => {
   const close = usePlannerStore((state) => state.closeEditor);
 
   return (
-    <Dialog
-      open={!!editor}
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
-      title={editorTitle(editor)}
-      footer={<></>}
-    >
-      {editor && <EditorForm initial={editor} />}
-    </Dialog>
+    <>
+      <Dialog
+        open={!!editor}
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+        title={editorTitle(editor)}
+        footer={<></>}
+      >
+        {editor && <EditorForm initial={editor} />}
+      </Dialog>
+      <BatchAssignmentDialog />
+    </>
   );
 };

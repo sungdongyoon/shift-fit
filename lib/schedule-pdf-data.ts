@@ -17,7 +17,7 @@ const EMPLOYEES_PER_CALENDAR = 5;
 const shiftKey = (shift: ShiftType) =>
   [shift.id, shift.name, shift.start, shift.end, shift.color].join("|");
 
-const CATEGORY_ORDER = { work: 0, other: 1, off: 2, leave: 3, unassigned: 4 };
+const CATEGORY_ORDER = { work: 0, other: 1, off: 2, leave: 3 };
 
 const comparePdfRows = (first: CalendarRow, second: CalendarRow) => {
   const categoryOrder = CATEGORY_ORDER[first.assignment.category] - CATEGORY_ORDER[second.assignment.category];
@@ -39,17 +39,20 @@ const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[
     rows: cell.isCurrentMonth
       ? employees
           .filter((employee) => isEmployeeVisibleOn(employee, cell.date))
-          .map((employee) => ({
-            employee,
-            assignment: getAssignment(data, cell.date, employee.id),
-          }))
+          .flatMap((employee) => {
+            const assignment = getAssignment(data, cell.date, employee.id);
+
+            return assignment ? [{ employee, assignment }] : [];
+          })
           .sort(comparePdfRows)
       : [],
   }));
   const groups = [];
 
-  for (let start = 0; start < employees.length; start += EMPLOYEES_PER_CALENDAR) {
-    const end = Math.min(start + EMPLOYEES_PER_CALENDAR, employees.length);
+  const maximumRows = Math.max(1, ...sortedDays.map((day) => day.rows.length));
+
+  for (let start = 0; start < maximumRows; start += EMPLOYEES_PER_CALENDAR) {
+    const end = Math.min(start + EMPLOYEES_PER_CALENDAR, maximumRows);
     const days = sortedDays.map((day) => ({
       ...day,
       rows: day.rows.slice(start, end),

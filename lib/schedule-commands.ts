@@ -163,7 +163,7 @@ const saveEmployee = (
     },
     message: editor.id
       ? "근무자 정보를 수정했어요."
-      : "근무자를 추가했어요. 근무 시작일부터 미배정으로 표시돼요.",
+      : "근무자를 추가했어요. 캘린더의 + 버튼으로 일정을 배정해 주세요.",
   };
 };
 
@@ -186,7 +186,11 @@ const saveAssignment = (
     return { ok: false, error: "근무 시작일 이전이나 퇴사일 이후에는 일정을 배정할 수 없어요." };
   }
 
-  const currentShift = getAssignment(data, editor.date, editor.employee).shift;
+  if (editor.original === false && getAssignment(data, editor.date, editor.employee)) {
+    return { ok: false, error: "이미 배정된 근무자예요. 캘린더에서 기존 일정을 수정해 주세요." };
+  }
+
+  const currentShift = getAssignment(data, editor.date, editor.employee)?.shift;
   const activeShift = getMonthShiftTypes(data, month).find((type) => !type.archived && type.id === editor.typeId);
   // Only this employee's existing assignment can retain a deleted type.
   const shift = activeShift ?? (currentShift?.id === editor.typeId ? currentShift : undefined);
@@ -230,9 +234,12 @@ export const removeScheduleEditor = (
   editor: Editor,
 ) => {
   if (editor.kind === "assignment") {
+    const entries = { ...data.entries };
+    delete entries[`${editor.date}:${editor.employee}`];
+
     return {
-      data: assign(data, editor.date, editor.employee, { category: "off" }),
-      message: "배정을 삭제하고 휴무로 변경했어요.",
+      data: { ...data, entries },
+      message: "해당 날짜의 배정을 삭제했어요.",
     };
   }
 

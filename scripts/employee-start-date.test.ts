@@ -31,14 +31,14 @@ test("근무 시작일은 필수이며 실제 존재하는 날짜만 허용한�
   if (result.ok) assert.equal(result.data.employees[0].startDate, "2026-10-01");
 });
 
-test("시작일 당일부터 노출하고 그 전 날짜는 미배정·휴무 집계에서 제외한다", () => {
+test("시작일 당일부터 배정 가능하며 일정 없는 날짜는 집계하지 않는다", () => {
   assert.equal(isEmployeeVisibleOn(employee, "2026-11-14"), false);
   assert.equal(isEmployeeVisibleOn(employee, "2026-11-15"), true);
   assert.equal(employeesInMonth([employee], "2026-10").length, 0);
   assert.equal(employeesInMonth([employee], "2026-11").length, 1);
-  assert.deepEqual(counts(sample(), "2026-10", employee.id), { work: 0, off: 0, leave: 0, other: 0, unassigned: 0 });
-  assert.equal(counts(sample(), "2026-11", employee.id).unassigned, 16);
-  assert.equal(counts(sample(), "2026-12", employee.id).unassigned, 31);
+  assert.deepEqual(counts(sample(), "2026-10", employee.id), { work: 0, off: 0, leave: 0, other: 0 });
+  assert.equal(counts(sample(), "2026-11", employee.id).off, 0);
+  assert.equal(counts(sample(), "2026-12", employee.id).work, 0);
 });
 
 test("시작일 이전 배정을 막고 기존 일정을 숨기는 시작일 변경도 거부한다", () => {
@@ -55,11 +55,12 @@ test("시작일 이전 배정을 막고 기존 일정을 숨기는 시작일 변
 
 test("PDF 날짜별 이름과 명단·횟수에 동일한 시작일 기준을 적용한다", () => {
   const data = sample();
+  data.entries[`2026-11-15:${employee.id}`] = { category: "off" };
   const pdf = buildSchedulePdfData(data, "2026-11", {});
   const days = pdf.calendars[0].weeks.flat();
   assert.equal(days.find((day) => day.date === "2026-11-14")!.rows.length, 0);
   assert.equal(days.find((day) => day.date === "2026-11-15")!.rows.length, 1);
-  assert.equal(pdf.employees[0].counts.unassigned, 16);
+  assert.equal(pdf.employees[0].counts.off, 1);
   assert.throws(() => buildSchedulePdfData(data, "2026-10", {}));
 });
 
@@ -81,5 +82,5 @@ test("달력 추가·수정 진입도 시작 전 근무자를 선택하지 않�
   store.getState().editAssignment("2026-11-14", employee.id);
   assert.equal(store.getState().editor, null);
   store.getState().addAssignment("2026-11-15");
-  assert.equal(store.getState().editor?.kind, "assignment");
+  assert.equal(store.getState().batchAssignment?.date, "2026-11-15");
 });

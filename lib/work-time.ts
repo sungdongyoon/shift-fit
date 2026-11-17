@@ -29,7 +29,7 @@ export const monthlyWorkMinutes = (
     if (!isEmployeeVisibleOn(employee, date)) continue;
 
     const assignment = getAssignment(data, date, employee.id);
-    if (assignment.category !== "work" || !assignment.shift) continue;
+    if (assignment?.category !== "work" || !assignment.shift) continue;
 
     const startMinutes = timeToMinutes(assignment.shift.start);
     const endMinutes = timeToMinutes(assignment.shift.end);

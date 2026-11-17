@@ -4,7 +4,6 @@ import { memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   isEmployeeVisibleOn,
-  defaultAssignment,
   type Employee,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
@@ -43,7 +42,7 @@ export const CalendarDay = memo(
       useShallow((state) =>
         employees.map(
           (employee) =>
-            state.data.entries[`${date}:${employee.id}`] ?? defaultAssignment(employee, date),
+            state.data.entries[`${date}:${employee.id}`],
         ),
       ),
     );
@@ -51,11 +50,13 @@ export const CalendarDay = memo(
     const rows = useMemo(
       () =>
         employees
-          .map((employee, index) => ({
-            employee,
-            assignment: assignments[index],
-          }))
-          .filter(({ employee }) => isEmployeeVisibleOn(employee, date))
+          .flatMap((employee, index) => {
+            const assignment = assignments[index];
+
+            return assignment && isEmployeeVisibleOn(employee, date)
+              ? [{ employee, assignment }]
+              : [];
+          })
           .sort(compareCalendarRows),
       [employees, assignments, date],
     );

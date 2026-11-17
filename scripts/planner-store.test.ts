@@ -101,7 +101,7 @@ test("편집은 자동 저장하지 않고 저장 버튼 호출 때만 변경 �
   assert.equal(writes.length, 1);
   assert.equal(store.getState().revision, 1);
   assert.deepEqual(read().targets, {});
-  assert.equal(getAssignment(read(), "2026-11-04", employee.id).memo, "교육");
+  assert.equal(getAssignment(read(), "2026-11-04", employee.id)!.memo, "교육");
   assert.equal(hasUnsavedChanges(store.getState()), false);
   assert.equal(await store.getState().saveSchedule(), false);
   assert.equal(writes.length, 1);
@@ -277,7 +277,7 @@ test("타입 삭제는 마지막 배정을 보존하고 직원 삭제는 연결�
     .saveEditor({ kind: "type", ...DEFAULT_SHIFT_TYPES[2], end: "22:00" });
   store.getState().removeEditor({ kind: "type", ...DEFAULT_SHIFT_TYPES[2] });
   assert.equal(
-    getAssignment(store.getState().data, "2026-11-04", employee.id).shift?.end,
+    getAssignment(store.getState().data, "2026-11-04", employee.id)!.shift?.end,
     "22:00",
   );
   store.getState().removeEditor({ kind: "employee", startDate: "2026-01-01", ...employee });
@@ -286,7 +286,7 @@ test("타입 삭제는 마지막 배정을 보존하고 직원 삭제는 연결�
   assert.equal(store.getState().data.employees.length, 1);
 });
 
-test("미배정과 기타 메모는 분리되고 예시 데이터는 UUID로 DB 저장 가능하다", async () => {
+test("예시 데이터의 휴무 횟수를 유지하며 UUID로 DB 저장 가능하다", async () => {
   const { store, writes } = setup();
   await store.getState().loadSchedule(new Date(2026, 1, 1));
   store.getState().loadExample();

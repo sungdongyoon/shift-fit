@@ -14,14 +14,14 @@ import { initial, getAssignment } from "../lib/schedule";
 
 const sample = () => createExampleSchedule(structuredClone(initial), "2026-11");
 
-test("DB 행 변환은 직원·월별 타입·배정·메모와 미배정을 왕복 보존한다", () => {
+test("DB 행 변환은 직원·월별 타입·배정·메모와 빈 날짜를 왕복 보존한다", () => {
   const data = sample();
   const employee = data.employees[0];
   data.entries[`2026-11-04:${employee.id}`] = {
     category: "other",
     memo: "교육",
   };
-  data.entries[`2026-11-05:${employee.id}`] = { category: "unassigned" };
+  delete data.entries[`2026-11-05:${employee.id}`];
   data.typesByMonth["2026-11"][0].archived = true;
   const payload = toPlannerPayload(data);
   const result = fromPlannerRows({ ...payload, revision: 3 });
@@ -29,12 +29,12 @@ test("DB 행 변환은 직원·월별 타입·배정·메모와 미배정을 왕
   assert.equal(result.data.employees.length, 4);
   assert.equal(result.data.typesByMonth["2026-11"][0].archived, true);
   assert.equal(
-    getAssignment(result.data, "2026-11-04", employee.id).memo,
+    getAssignment(result.data, "2026-11-04", employee.id)!.memo,
     "교육",
   );
   assert.equal(
-    getAssignment(result.data, "2026-11-05", employee.id).category,
-    "unassigned",
+    getAssignment(result.data, "2026-11-05", employee.id),
+    undefined,
   );
   assert.deepEqual(toPlannerPayload(result.data), payload);
 });

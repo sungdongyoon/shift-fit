@@ -1,14 +1,12 @@
 "use client";
 
 import { Select } from "@/components/ui/select";
-import { TextField } from "@/components/ui/text-field";
+import { AssignmentOptions } from "./assignment-options";
 import { useEmployees, useShiftTypes } from "@/hooks/use-month-schedule";
 import type { AssignmentEditor, Editor } from "@/lib/editor";
 import {
-  categories,
   getAssignment,
   isEmployeeVisibleOn,
-  labels,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 
@@ -27,11 +25,11 @@ export const AssignmentFields = ({
 
   const entries = usePlannerStore((state) => state.data.entries);
   const existing = getAssignment(
-    { entries, employees },
+    { entries },
     editor.date,
     editor.employee,
   );
-  const assignedShift = existing.shift;
+  const assignedShift = existing?.shift;
   const hasDeletedShift = Boolean(
     assignedShift && !types.some((type) => type.id === assignedShift.id),
   );
@@ -61,63 +59,18 @@ export const AssignmentFields = ({
             onChange({ ...editor, employee: event.target.value })
           }
           options={employees
-            .filter((employee) => isEmployeeVisibleOn(employee, editor.date))
+            .filter((employee) => isEmployeeVisibleOn(employee, editor.date) &&
+              !getAssignment({ entries }, editor.date, employee.id),
+            )
             .map((employee) => ({ value: employee.id, label: employee.name }))}
         />
       )}
-      <div
-        className="grid grid-cols-5 gap-[3px] rounded-[9px] bg-canvas-subtle p-1"
-        role="group"
-        aria-label="일정 종류"
-      >
-        {categories.map((category) => (
-          <button
-            key={category}
-            type="button"
-            aria-pressed={editor.category === category}
-            onClick={() => onChange({ ...editor, category })}
-            className="rounded-md border-0 bg-transparent px-1 py-[9px] text-xs/normal text-content-secondary aria-pressed:bg-canvas aria-pressed:font-bold aria-pressed:text-brand-content aria-pressed:shadow-[0_1px_5px_#17171914]"
-          >
-            {labels[category]}
-          </button>
-        ))}
-      </div>
-      {editor.category === "work" && (
-        <Select
-          label="근무 타입"
-          required
-          placeholder="근무 타입 선택"
-          value={editor.typeId}
-          onChange={(event) =>
-            onChange({ ...editor, typeId: event.target.value })
-          }
-          options={selectableTypes.map((type) => ({
-            value: type.id,
-            label: `${type.name} · ${type.start} ~ ${type.end}${type.end < type.start ? " (다음 날)" : ""}${hasDeletedShift && type.id === assignedShift?.id ? " (삭제된 타입)" : ""}`,
-          }))}
-          error={
-            !selectableTypes.length
-              ? "먼저 왼쪽에서 근무 타입을 추가해 주세요."
-              : undefined
-          }
-        />
-      )}
-      {editor.category === "other" && (
-        <TextField
-          label="기타 메모"
-          placeholder="예: 교육, 외부 지원"
-          value={editor.memo ?? ""}
-          maxLength={200}
-          onChange={(event) =>
-            onChange({ ...editor, memo: event.target.value })
-          }
-        />
-      )}
-      {/* <p className="rounded-control bg-canvas-subtle p-3 text-[11px] leading-[1.9] text-content-tertiary">
-        {existing.category === "unassigned"
-          ? "이 직원의 미배정 상태를 선택한 일정으로 변경해요."
-          : "이미 배정된 일정이 있어요. 저장하면 기존 일정을 변경해요."}
-      </p> */}
+      <AssignmentOptions
+        value={editor}
+        onChange={(value) => onChange({ ...editor, ...value })}
+        types={selectableTypes}
+        deletedTypeId={hasDeletedShift ? assignedShift?.id : undefined}
+      />
     </>
   );
 };

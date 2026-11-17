@@ -275,6 +275,8 @@ export const fromPlannerRows = (input: unknown): PlannerSnapshot => {
     (data.typesByMonth[row.month.slice(0, 7)] ??= []).push(type);
   });
   rows.assignments.forEach((row) => {
+    if (String(row.category) === "unassigned") return;
+
     const shift = row.shift_type_id ? types.get(row.shift_type_id) : undefined;
     data.entries[`${row.work_date}:${row.employee_id}`] = {
       category: row.category,

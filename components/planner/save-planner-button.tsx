@@ -14,7 +14,11 @@ export const SavePlannerButton = () => {
 
   return (
     <div className="flex items-center gap-2">
-      <span role="status" className="text-[10px] text-content-tertiary">
+      <span role="status" className="flex items-center gap-1.5 text-[10px] text-content-tertiary">
+        <span
+          aria-hidden="true"
+          className={`size-1.5 shrink-0 rounded-full ${dirty ? "bg-danger" : "bg-success"}`}
+        />
         {dirty ? "저장하지 않은 변경사항" : "변경사항 없음"}
       </span>
       <button

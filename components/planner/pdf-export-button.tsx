@@ -25,14 +25,6 @@ export const PdfExportButton = ({ month, holidays, disabled }: PdfExportButtonPr
 
     try {
       const snapshot = buildSchedulePdfData(data, month, holidays);
-      const unassignedCount = snapshot.employees.reduce((total, employee) => total + employee.counts.unassigned, 0);
-
-      if (unassignedCount > 0) {
-        const confirmed = window.confirm(`미배정 일정이 ${unassignedCount}건 남아 있어요.\n미배정 상태를 포함해 PDF를 다운로드할까요?`);
-
-        if (!confirmed) return;
-      }
-
       // Keep the PDF engine and font loading out of the initial calendar bundle.
       const { downloadSchedulePdf } = await import("@/lib/download-schedule-pdf");
       await downloadSchedulePdf(snapshot);

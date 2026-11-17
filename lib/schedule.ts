@@ -1,14 +1,10 @@
-export const categories = ["work", "off", "leave", "other", "unassigned"] as const;
+export const categories = ["work", "off", "leave", "other"] as const;
 
 export type Category = (typeof categories)[number];
 
 export type AssignmentCounts = Record<Category, number>;
 
 export const DEFAULT_OFF_TARGET = 8;
-
-export const DEFAULT_OFF_ASSIGNMENT: Assignment = Object.freeze({ category: "off" });
-
-export const DEFAULT_UNASSIGNED: Assignment = Object.freeze({ category: "unassigned" });
 
 export type ShiftType = {
   id: string;
@@ -55,7 +51,6 @@ export const labels: Record<Category, string> = {
   off: "휴무",
   leave: "연차",
   other: "기타",
-  unassigned: "미배정",
 };
 
 export const colors = [
@@ -137,29 +132,11 @@ export const employeesInMonth = <T extends Employee>(employees: T[], month: stri
     (!employee.endDate || employee.endDate >= `${month}-01`),
   );
 
-export const defaultAssignment = (employee: Employee | undefined, date: string): Assignment => {
-  const month = date.slice(0, 7);
-  const wasPreviouslyVisible = employee && employee.from <= month &&
-    (!employee.until || employee.until >= month);
-
-  if (wasPreviouslyVisible && employee.legacyOffThrough && month <= employee.legacyOffThrough) {
-    return DEFAULT_OFF_ASSIGNMENT;
-  }
-
-  return DEFAULT_UNASSIGNED;
-};
-
 export const getAssignment = (
-  data: Pick<Schedule, "entries"> & Partial<Pick<Schedule, "employees">>,
+  data: Pick<Schedule, "entries">,
   date: string,
   employeeId: string,
-): Assignment => {
-  const saved = data.entries[`${date}:${employeeId}`];
-
-  if (saved) return saved;
-
-  return defaultAssignment(data.employees?.find((employee) => employee.id === employeeId), date);
-};
+): Assignment | undefined => data.entries[`${date}:${employeeId}`];
 
 export const assign = (
   data: Schedule,
@@ -179,7 +156,7 @@ export const counts = (
   month: string,
   employeeId: string,
 ): AssignmentCounts => {
-  const result: AssignmentCounts = { work: 0, off: 0, leave: 0, other: 0, unassigned: 0 };
+  const result: AssignmentCounts = { work: 0, off: 0, leave: 0, other: 0 };
   const totalDays = daysInMonth(month);
   const employee = data.employees?.find((item) => item.id === employeeId);
 
@@ -189,14 +166,13 @@ export const counts = (
     if (employee && !isEmployeeVisibleOn(employee, date)) continue;
 
     const assignment = getAssignment(data, date, employeeId);
-    result[assignment.category]++;
+    if (assignment) result[assignment.category]++;
   }
 
   return result;
 };
 
 const nonWorkColors = {
-  unassigned: "#B5BBC5",
   off: "#A58C73",
   leave: "#638C94",
   other: "#949564",
@@ -313,7 +289,9 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
   if (
     !isRecord(saved) || (saved.version !== 1 && saved.version !== 2 && saved.version !== 3) ||
     !Array.isArray(saved.employees) || !saved.employees.every(isValidEmployee) ||
-    !isRecord(saved.entries) || !Object.values(saved.entries).every(isValidAssignment) ||
+    !isRecord(saved.entries) || !Object.values(saved.entries).every((value) =>
+      isValidAssignment(value) || (isRecord(value) && value.category === "unassigned"),
+    ) ||
     !isRecord(saved.targets)
   ) {
     throw new Error("저장 형식을 확인해 주세요.");
@@ -330,13 +308,18 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
     throw new Error("근무자별 휴무 기준을 확인해 주세요.");
   }
 
+  // 이전 저장본의 미배정 행은 빈 날짜로 전환하며 실제 배정은 보존합니다.
+  const entries = Object.fromEntries(Object.entries(saved.entries).filter(([, value]) =>
+    !(isRecord(value) && value.category === "unassigned"),
+  )) as Record<string, Assignment>;
+
   if (saved.version === 3) {
     if (!isRecord(saved.typesByMonth) || !Object.entries(saved.typesByMonth).every(([month, types]) =>
       isValidMonth(month) && Array.isArray(types) && types.every(isValidShiftType) &&
       new Set(types.map((type) => type.id)).size === types.length,
     )) throw new Error("월별 근무 타입을 읽지 못했어요.");
 
-    return saved as unknown as Schedule;
+    return { ...saved, entries } as unknown as Schedule;
   }
 
   if (!Array.isArray(saved.types) || !saved.types.every(isValidShiftType)) {
@@ -344,7 +327,6 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
   }
 
   const employees = saved.employees as Employee[];
-  const entries = saved.entries as Record<string, Assignment>;
   const targets = saved.targets as Record<string, number>;
   const months = [...new Set([
     currentMonth,
@@ -352,14 +334,11 @@ export const readSaved = (raw: string, currentMonth = monthKey(new Date().getFul
     ...Object.keys(targets),
     ...Object.keys(entries).map((key) => key.slice(0, 7)),
   ])].filter(isValidMonth).sort();
-  const lastLegacyMonth = months.at(-1)!;
 
   // Preserve recorded assignment snapshots; migration must not rewrite past shifts.
   return {
     version: 3,
-    employees: employees.map((employee) => saved.version === 1
-      ? { ...employee, legacyOffThrough: lastLegacyMonth }
-      : employee),
+    employees,
     entries,
     targets,
     typesByMonth: Object.fromEntries(months.map((month) => [month, structuredClone(saved.types as ShiftType[])])),

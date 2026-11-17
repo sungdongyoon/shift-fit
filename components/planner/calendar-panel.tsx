@@ -22,14 +22,11 @@ export const CalendarPanel = () => {
   );
   const storeName = usePlannerStore((state) => state.data.storeName ?? "나의 매장");
   const selected = usePlannerStore((state) => state.view.selected);
-  const hasEmployees = usePlannerStore(
-    (state) => state.data.employees.length > 0,
-  );
   const navigate = usePlannerStore((state) => state.navigateMonth);
   const goToToday = usePlannerStore((state) => state.goToToday);
+  const openBatchAssignment = usePlannerStore((state) => state.openBatchAssignment);
   const clearSelection = usePlannerStore((state) => state.clearSelection);
   const open = usePlannerStore((state) => state.openEditor);
-  const loadExample = usePlannerStore((state) => state.loadExample);
 
   const selectedEmployee = employees.find(
     (employee) => employee.id === selected,
@@ -77,6 +74,14 @@ export const CalendarPanel = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SavePlannerButton />
+          <button
+            type="button"
+            disabled={!ready || !employees.length}
+            onClick={() => openBatchAssignment()}
+            className="rounded-md border border-line bg-canvas px-2.5 py-[7px] text-[11px] text-content-secondary enabled:hover:bg-surface-hover disabled:text-content-disabled"
+          >
+            일괄 배정
+          </button>
           <PdfExportButton
             month={month}
             holidays={holidays}
@@ -120,10 +125,9 @@ export const CalendarPanel = () => {
           </div>
           <h3 className="text-[15px] font-bold">근무자가 없습니다.</h3>
           <p className="mt-2.5 mb-[18px] text-[11px] leading-[1.9] text-content-tertiary">
-            근무 시작일부터 이름이 표시됩니다.
+            근무자를 등록한 뒤 날짜의 + 버튼으로
             <br />
-            처음에는 미배정으로 표시되며 <br />
-            원하는 날에 근무를 배정할 수 있습니다.
+            원하는 날에 일정을 추가해 주세요.
           </p>
           <Button
             size="sm"
@@ -139,14 +143,7 @@ export const CalendarPanel = () => {
           >
             <FaPlus /> 근무자 추가
           </Button>
-          {/* {!hasEmployees && (
-            <button
-              className="mx-auto mt-[13px] block border-0 bg-transparent text-[10px] text-content-tertiary"
-              onClick={loadExample}
-            >
-              예시 근무표 먼저 둘러보기 ↗
-            </button>
-          )} */}
+
         </div>
       )}
     </section>
