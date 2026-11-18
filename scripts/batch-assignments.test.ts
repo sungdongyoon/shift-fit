@@ -138,14 +138,21 @@ test("일괄 적용은 통신하지 않고 실행 취소 한 번으로 복원하
   });
   await store.getState().loadSchedule(new Date(2026, 10, 17));
   store.getState().openBatchAssignment();
-  assert.equal(store.getState().saveBatchAssignment(request()), null);
+  assert.equal(
+    store
+      .getState()
+      .saveBatchAssignment(request({ dates: ["2026-11-15", "2026-11-20"] })),
+    null,
+  );
   assert.equal(writes, 0);
   assert.equal(store.getState().batchAssignment, null);
   assert.equal(hasUnsavedChanges(store.getState()), true);
   store.getState().undoLastChange();
   assert.deepEqual(store.getState().data, data);
   store.getState().openBatchAssignment();
-  store.getState().saveBatchAssignment(request());
+  store
+    .getState()
+    .saveBatchAssignment(request({ dates: ["2026-11-15", "2026-11-20"] }));
   assert.equal(await store.getState().saveSchedule(), true);
   assert.equal(writes, 1);
 });

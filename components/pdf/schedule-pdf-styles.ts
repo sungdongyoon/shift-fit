@@ -9,10 +9,18 @@ export const pdfColors = {
   saturday: "#5686D6",
 };
 
+export const pdfLayout = {
+  pageWidth: 595.28,
+  pageHorizontalPadding: 32,
+  dayPadding: 2.5,
+  assignmentHorizontalPadding: 5,
+  assignmentAccentWidth: 2,
+};
+
 export const pdfStyles = StyleSheet.create({
   page: {
     paddingTop: 30,
-    paddingHorizontal: 32,
+    paddingHorizontal: pdfLayout.pageHorizontalPadding,
     paddingBottom: 30,
     fontFamily: "ShiftfitKorean",
     fontSize: 8,
@@ -70,7 +78,7 @@ export const pdfStyles = StyleSheet.create({
   },
   day: {
     width: "14.285714%",
-    padding: 2.5,
+    padding: pdfLayout.dayPadding,
     minHeight: 46,
     borderTopWidth: 0.5,
     borderTopColor: pdfColors.line,
@@ -100,13 +108,13 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: 0.75,
     borderRadius: 1,
   },
-  assignmentAccent: { width: 2, alignSelf: "stretch" },
+  assignmentAccent: { width: pdfLayout.assignmentAccentWidth, alignSelf: "stretch" },
   assignmentContent: {
     flex: 1,
     minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 5,
+    paddingHorizontal: pdfLayout.assignmentHorizontalPadding,
     paddingVertical: 5,
   },
   assignmentContentCompact: { paddingVertical: 1.35 },

@@ -4,7 +4,6 @@ import { useReducer, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import {
-  datesForWeekdays,
   planBatchAssignments,
   type BatchAssignmentContext,
 } from "@/lib/batch-assignments";
@@ -18,7 +17,14 @@ import {
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { AssignmentOptions } from "./assignment-options";
-import { BatchDatePicker, type BatchDateSelection } from "./batch-date-picker";
+import { BatchDatePicker } from "./batch-date-picker";
+import {
+  availableBatchDates,
+  batchDateDisabledNotices,
+  constrainBatchDateSelection,
+  selectedBatchDates,
+  type BatchDateSelection,
+} from "@/lib/batch-date-selection";
 import { EmployeeCheckboxList } from "./employee-checkbox-list";
 
 type BatchFormState = {
@@ -75,15 +81,19 @@ const BatchAssignmentForm = ({
           !getAssignment(data, date, employee.id),
       )
     : employeesInMonth(data.employees, context.month);
-  const dates =
-    draft.selection.mode === "dates"
-      ? draft.selection.dates
-      : datesForWeekdays(
-          context.month,
-          draft.selection.start,
-          draft.selection.end,
-          draft.selection.weekdays,
-        );
+  const availableDates = availableBatchDates(
+    data.employees,
+    context.month,
+    draft.employeeIds,
+  );
+  const selection = constrainBatchDateSelection(
+    draft.selection,
+    availableDates,
+    context.month,
+  );
+  const dates = context.date
+    ? [context.date]
+    : selectedBatchDates(context.month, selection, availableDates);
   const request = {
     month: context.month,
     employeeIds: draft.employeeIds,
@@ -93,12 +103,27 @@ const BatchAssignmentForm = ({
     memo: draft.memo,
   };
   const invalidRange =
-    draft.selection.mode === "weekdays" &&
-    draft.selection.start > draft.selection.end;
+    selection.mode === "weekdays" && selection.start > selection.end;
   const preview = invalidRange
     ? { ok: false as const, error: "종료일은 시작일보다 빠를 수 없어요." }
     : planBatchAssignments(data, request);
   const additions = preview.ok ? preview.plan.additions.length : 0;
+
+  const changeEmployees = (employeeIds: string[]) => {
+    const nextAvailableDates = availableBatchDates(
+      data.employees,
+      context.month,
+      employeeIds,
+    );
+    update({
+      employeeIds,
+      selection: constrainBatchDateSelection(
+        draft.selection,
+        nextAvailableDates,
+        context.month,
+      ),
+    });
+  };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -120,12 +145,18 @@ const BatchAssignmentForm = ({
       <EmployeeCheckboxList
         employees={employees}
         selected={draft.employeeIds}
-        onChange={(employeeIds) => update({ employeeIds })}
+        onChange={changeEmployees}
       />
       {!context.date && (
         <BatchDatePicker
           month={context.month}
-          value={draft.selection}
+          value={selection}
+          availableDates={availableDates}
+          disabledNotices={batchDateDisabledNotices(
+            data.employees,
+            draft.employeeIds,
+            context.month,
+          )}
           onChange={(selection) => update({ selection })}
         />
       )}

@@ -2,19 +2,14 @@
 
 import { TextField } from "@/components/ui/text-field";
 import { buildMonthCells } from "@/lib/calendar";
-import { daysInMonth } from "@/lib/schedule";
-
-export type BatchDateSelection = {
-  mode: "dates" | "weekdays";
-  dates: string[];
-  start: string;
-  end: string;
-  weekdays: number[];
-};
+import { dateKey, daysInMonth } from "@/lib/schedule";
+import type { BatchDateSelection } from "@/lib/batch-date-selection";
 
 type BatchDatePickerProps = {
   month: string;
   value: BatchDateSelection;
+  availableDates: string[];
+  disabledNotices: string[];
   onChange: (value: BatchDateSelection) => void;
 };
 
@@ -23,13 +18,28 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 export const BatchDatePicker = ({
   month,
   value,
+  availableDates,
+  disabledNotices,
   onChange,
 }: BatchDatePickerProps) => {
   const cells = buildMonthCells(month);
-  const firstDate = `${month}-01`;
-  const lastDate = `${month}-${daysInMonth(month)}`;
+  const firstDate = availableDates[0] ?? `${month}-01`;
+  const lastDate = availableDates.at(-1) ?? dateKey(month, daysInMonth(month));
+  const noAvailableDates = availableDates.length === 0;
+  const allSelected =
+    !noAvailableDates &&
+    availableDates.every((date) => value.dates.includes(date));
+  const availableWeekdays = new Set(
+    availableDates
+      .filter((date) => date >= value.start && date <= value.end)
+      .map((date) => new Date(`${date}T00:00:00Z`).getUTCDay()),
+  );
+  const workdays = [1, 2, 3, 4, 5].filter((day) => availableWeekdays.has(day));
+  const weekends = [0, 6].filter((day) => availableWeekdays.has(day));
 
   const toggleDate = (date: string) => {
+    if (!availableDates.includes(date)) return;
+
     onChange({
       ...value,
       dates: value.dates.includes(date)
@@ -39,6 +49,8 @@ export const BatchDatePicker = ({
   };
 
   const toggleWeekday = (day: number) => {
+    if (!availableWeekdays.has(day)) return;
+
     onChange({
       ...value,
       weekdays: value.weekdays.includes(day)
@@ -74,19 +86,13 @@ export const BatchDatePicker = ({
               onClick={() =>
                 onChange({
                   ...value,
-                  dates:
-                    value.dates.length === daysInMonth(month)
-                      ? []
-                      : cells
-                          .filter((cell) => cell.isCurrentMonth)
-                          .map((cell) => cell.date),
+                  dates: allSelected ? [] : availableDates,
                 })
               }
-              className="text-brand-content underline underline-offset-2"
+              disabled={noAvailableDates}
+              className="text-brand-content underline underline-offset-2 disabled:text-content-disabled"
             >
-              {value.dates.length === daysInMonth(month)
-                ? "날짜 선택 해제"
-                : "이 달 전체 선택"}
+              {allSelected ? "날짜 선택 해제" : "이 달 전체 선택"}
             </button>
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -105,8 +111,9 @@ export const BatchDatePicker = ({
                   type="button"
                   aria-label={`${cell.date} 선택`}
                   aria-pressed={value.dates.includes(cell.date)}
+                  disabled={!availableDates.includes(cell.date)}
                   onClick={() => toggleDate(cell.date)}
-                  className="min-h-9 rounded-md text-xs text-content-secondary hover:bg-canvas-subtle aria-pressed:bg-brand aria-pressed:text-on-brand"
+                  className="min-h-9 rounded-md text-xs text-content-secondary hover:bg-canvas-subtle aria-pressed:bg-brand aria-pressed:text-on-brand disabled:cursor-not-allowed disabled:bg-canvas-subtle disabled:text-content-disabled"
                 >
                   {cell.day}
                 </button>
@@ -115,6 +122,13 @@ export const BatchDatePicker = ({
               ),
             )}
           </div>
+          {disabledNotices.length > 0 && (
+            <div className="space-y-1 text-[8px] font-medium text-danger">
+              {disabledNotices.map((notice) => (
+                <p key={notice}>{notice}</p>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -123,6 +137,7 @@ export const BatchDatePicker = ({
               label="시작일"
               type="date"
               required
+              disabled={noAvailableDates}
               min={firstDate}
               max={lastDate}
               value={value.start}
@@ -134,6 +149,7 @@ export const BatchDatePicker = ({
               label="종료일"
               type="date"
               required
+              disabled={noAvailableDates}
               min={value.start || firstDate}
               max={lastDate}
               value={value.end}
@@ -145,13 +161,17 @@ export const BatchDatePicker = ({
           <div className="flex gap-3 text-[11px] text-brand-content">
             <button
               type="button"
-              onClick={() => onChange({ ...value, weekdays: [1, 2, 3, 4, 5] })}
+              disabled={!workdays.length}
+              className="disabled:text-content-disabled"
+              onClick={() => onChange({ ...value, weekdays: workdays })}
             >
               평일 선택
             </button>
             <button
               type="button"
-              onClick={() => onChange({ ...value, weekdays: [0, 6] })}
+              disabled={!weekends.length}
+              className="disabled:text-content-disabled"
+              onClick={() => onChange({ ...value, weekdays: weekends })}
             >
               주말 선택
             </button>
@@ -165,9 +185,12 @@ export const BatchDatePicker = ({
               <button
                 key={day}
                 type="button"
-                aria-pressed={value.weekdays.includes(index)}
+                aria-pressed={
+                  availableWeekdays.has(index) && value.weekdays.includes(index)
+                }
+                disabled={!availableWeekdays.has(index)}
                 onClick={() => toggleWeekday(index)}
-                className="min-h-9 rounded-md border border-line text-xs aria-pressed:border-brand aria-pressed:bg-brand-subtle aria-pressed:text-brand-content"
+                className="min-h-9 rounded-md border border-line text-xs aria-pressed:border-brand aria-pressed:bg-brand-subtle aria-pressed:text-brand-content disabled:cursor-not-allowed disabled:bg-canvas-subtle disabled:text-content-disabled"
               >
                 {day}
               </button>

@@ -11,7 +11,7 @@ import {
   type ShiftType,
 } from "./schedule";
 
-// Each group contains a whole month on one A4 landscape page, including six-week months.
+// Each group contains a whole month on one A4 portrait page, including six-week months.
 const EMPLOYEES_PER_CALENDAR = 5;
 
 const shiftKey = (shift: ShiftType) =>

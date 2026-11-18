@@ -1,3 +1,4 @@
+import { availableBatchDates } from "../lib/batch-date-selection";
 import {
   applyBatchAssignments,
   planBatchAssignments,
@@ -303,6 +304,11 @@ export const createPlannerStore = (persistence?: PlannerPersistence) =>
           (batchAssignment.date && request.dates.some((date) => date !== batchAssignment.date))
         ) {
           return "배정 창을 다시 열어 주세요.";
+        }
+
+        const availableDates = availableBatchDates(data.employees, request.month, request.employeeIds);
+        if (request.dates.some((date) => !availableDates.includes(date))) {
+          return "선택한 근무자 모두가 재직 중인 날짜를 선택해 주세요.";
         }
 
         const result = planBatchAssignments(data, request);

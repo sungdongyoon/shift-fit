@@ -7,8 +7,9 @@ import {
   type Assignment,
   type Employee,
 } from "@/lib/schedule";
+import { pdfTextWidth, truncatePdfText } from "@/lib/pdf-text";
 import type { SchedulePdfData } from "@/lib/schedule-pdf-data";
-import { pdfColors, pdfStyles as styles } from "./schedule-pdf-styles";
+import { pdfColors, pdfLayout, pdfStyles as styles } from "./schedule-pdf-styles";
 
 const NON_WORK_CATEGORIES = ["off", "leave", "other"] as const;
 const EMPLOYEES_PER_TABLE = 20;
@@ -57,20 +58,15 @@ const ShiftLegend = ({ data }: { data: SchedulePdfData }) => (
   </View>
 );
 
-const PDF_ASSIGNMENT_CONTENT_WIDTH = 94;
-const PDF_NAME_MAX_CHARACTERS = 9;
+const PDF_ASSIGNMENT_CONTENT_WIDTH =
+  (pdfLayout.pageWidth - pdfLayout.pageHorizontalPadding * 2) / 7
+  - pdfLayout.dayPadding * 2
+  - pdfLayout.assignmentHorizontalPadding * 2
+  - pdfLayout.assignmentAccentWidth;
+const PDF_NAME_MAX_WIDTH = PDF_ASSIGNMENT_CONTENT_WIDTH * 0.6;
 const PDF_NAME_FONT_SIZE = 6.5;
 const PDF_LABEL_FONT_SIZE = 5.5;
 const PDF_LABEL_GAP = 3;
-
-// Korean strings without spaces can overflow react-pdf's single-line layout.
-const truncatePdfText = (text: string, limit: number) => {
-  const characters = Array.from(text);
-
-  if (characters.length <= limit) return text;
-
-  return `${characters.slice(0, limit - 1).join("")}…`;
-};
 
 const PdfAssignment = ({
   employee,
@@ -82,12 +78,9 @@ const PdfAssignment = ({
   compact: boolean;
 }) => {
   const color = assignmentColor(assignment);
-  const name = truncatePdfText(employee.name, PDF_NAME_MAX_CHARACTERS);
-  const nameWidth = Array.from(name).length * PDF_NAME_FONT_SIZE;
-  const labelLimit = Math.floor(
-    (PDF_ASSIGNMENT_CONTENT_WIDTH - nameWidth - PDF_LABEL_GAP) /
-      PDF_LABEL_FONT_SIZE,
-  );
+  const name = truncatePdfText(employee.name, PDF_NAME_MAX_WIDTH, PDF_NAME_FONT_SIZE);
+  const nameWidth = pdfTextWidth(name, PDF_NAME_FONT_SIZE);
+  const labelWidth = PDF_ASSIGNMENT_CONTENT_WIDTH - nameWidth - PDF_LABEL_GAP;
   const memo =
     assignment.category === "other"
       ? assignment.memo?.replace(/\s+/g, " ").trim()
@@ -109,7 +102,7 @@ const PdfAssignment = ({
           <Text style={styles.assignmentName}>{name}</Text>
         </View>
         <Text style={styles.assignmentLabel}>
-          {truncatePdfText(`· ${scheduleName}`, labelLimit)}
+          {truncatePdfText(`· ${scheduleName}`, labelWidth, PDF_LABEL_FONT_SIZE)}
         </Text>
       </View>
     </View>
@@ -260,7 +253,7 @@ export const SchedulePdf = ({ data }: { data: SchedulePdfData }) => (
       <Page
         key={calendar.start}
         size="A4"
-        orientation="landscape"
+        orientation="portrait"
         style={styles.page}
       >
         {index === 0 && (
@@ -273,7 +266,7 @@ export const SchedulePdf = ({ data }: { data: SchedulePdfData }) => (
         <PdfFooter />
       </Page>
     ))}
-    <Page size="A4" orientation="landscape" style={styles.page}>
+    <Page size="A4" orientation="portrait" style={styles.page}>
       <PdfEmployeeList data={data} />
       <PdfFooter />
     </Page>
