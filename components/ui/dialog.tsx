@@ -59,8 +59,9 @@ export const Dialog = ({
         event.preventDefault();
         onOpenChange(false);
       }}
-      onClose={() => {
-        if (open) onOpenChange(false);
+      onClose={(event) => {
+        // 개발 모드의 재초기화 후 늦게 도착한 close 이벤트는 무시합니다.
+        if (open && !event.currentTarget.open) onOpenChange(false);
       }}
       className={`fixed inset-0 m-auto max-h-[calc(100dvh-40px)] w-[calc(100%-40px)] max-w-[440px] overflow-y-auto rounded-dialog border border-line bg-surface p-8 text-content shadow-overlay backdrop:bg-black/40 ${className}`}
     >

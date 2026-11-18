@@ -126,7 +126,7 @@ const PdfCalendar = ({
         style={[styles.sectionTitle, styles.sectionTitleFlush]}
         minPresenceAhead={90}
       >
-        {data.title}
+        {data.calendarTitle}
         {data.calendars.length > 1
           ? ` (일별 배정 ${calendar.start}-${calendar.end}번째)`
           : ""}

@@ -20,7 +20,9 @@ const shiftKey = (shift: ShiftType) =>
 const CATEGORY_ORDER = { work: 0, other: 1, off: 2, leave: 3 };
 
 const comparePdfRows = (first: CalendarRow, second: CalendarRow) => {
-  const categoryOrder = CATEGORY_ORDER[first.assignment.category] - CATEGORY_ORDER[second.assignment.category];
+  const categoryOrder =
+    CATEGORY_ORDER[first.assignment.category] -
+    CATEGORY_ORDER[second.assignment.category];
 
   if (categoryOrder !== 0) return categoryOrder;
   if (first.assignment.category !== "work") return 0;
@@ -28,11 +30,18 @@ const comparePdfRows = (first: CalendarRow, second: CalendarRow) => {
   const firstShift = first.assignment.shift;
   const secondShift = second.assignment.shift;
 
-  return (firstShift?.start ?? "").localeCompare(secondShift?.start ?? "")
-    || (firstShift?.name ?? "").localeCompare(secondShift?.name ?? "", "ko");
+  return (
+    (firstShift?.start ?? "").localeCompare(secondShift?.start ?? "") ||
+    (firstShift?.name ?? "").localeCompare(secondShift?.name ?? "", "ko")
+  );
 };
 
-const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[], holidays: HolidayMap) => {
+const buildCalendarGroups = (
+  data: Schedule,
+  month: string,
+  employees: Employee[],
+  holidays: HolidayMap,
+) => {
   const sortedDays = buildMonthCells(month).map((cell) => ({
     ...cell,
     holiday: holidays[cell.date],
@@ -69,38 +78,55 @@ const buildCalendarGroups = (data: Schedule, month: string, employees: Employee[
   return groups;
 };
 
-export const buildSchedulePdfData = (data: Schedule, month: string, holidays: HolidayMap) => {
+export const buildSchedulePdfData = (
+  data: Schedule,
+  month: string,
+  holidays: HolidayMap,
+  employeeId = "",
+) => {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     throw new Error("출력할 월을 확인해 주세요.");
   }
 
-  const employees = employeesInMonth(data.employees, month);
+  const monthlyEmployees = employeesInMonth(data.employees, month);
+  const employees = employeeId
+    ? monthlyEmployees.filter((employee) => employee.id === employeeId)
+    : monthlyEmployees;
 
   if (!employees.length) throw new Error("출력할 근무자를 먼저 등록해 주세요.");
 
   const calendars = buildCalendarGroups(data, month, employees, holidays);
   const shiftTypes = new Map<string, ShiftType>();
 
-  getMonthShiftTypes(data, month).filter((shift) => !shift.archived).forEach((shift) => {
-    shiftTypes.set(shiftKey(shift), shift);
-  });
+  getMonthShiftTypes(data, month)
+    .filter((shift) => !shift.archived)
+    .forEach((shift) => {
+      shiftTypes.set(shiftKey(shift), shift);
+    });
 
   // Archived types remain in the legend while they are used by saved assignments.
-  calendars.forEach((calendar) => calendar.weeks.flat().forEach((day) => {
-    day.rows.forEach(({ assignment }) => {
-      if (assignment.category === "work" && assignment.shift) {
-        shiftTypes.set(shiftKey(assignment.shift), assignment.shift);
-      }
-    });
-  }));
+  calendars.forEach((calendar) =>
+    calendar.weeks.flat().forEach((day) => {
+      day.rows.forEach(({ assignment }) => {
+        if (assignment.category === "work" && assignment.shift) {
+          shiftTypes.set(shiftKey(assignment.shift), assignment.shift);
+        }
+      });
+    }),
+  );
 
   const [year, monthNumber] = month.split("-").map(Number);
 
   return {
     month,
     title: `${data.storeName?.trim() || "나의 매장"} ${year}.${String(monthNumber).padStart(2, "0")} 근무표`,
-    filename: `shiftfit-${month}.pdf`,
-    shiftTypes: [...shiftTypes.values()].sort((first, second) => first.start.localeCompare(second.start)),
+    calendarTitle: employeeId ? `${employees[0].name} 근무표` : "전체 근무표",
+    filename: employeeId
+      ? `shiftfit-${month}-${employees[0].name.replace(/[\\/:*?"<>|]/g, "_")}.pdf`
+      : `shiftfit-${month}.pdf`,
+    shiftTypes: [...shiftTypes.values()].sort((first, second) =>
+      first.start.localeCompare(second.start),
+    ),
     calendars,
     employees: employees.map((employee) => ({
       ...employee,

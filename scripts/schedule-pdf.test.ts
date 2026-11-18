@@ -149,3 +149,41 @@ test("PDF는 전체 일별 배정을 근무 타입·기타·휴무·연차 순�
   assert.deepEqual(output.employees.map((person) => person.id), data.employees.map((person) => person.id));
   assert.deepEqual(data, before);
 });
+
+
+test("개인 PDF는 선택한 직원의 일정·횟수만 포함하고 원본은 유지한다", () => {
+  let data = base();
+  const colleague = { ...employee, id: "colleague", name: "근무자 2" };
+  data.employees.push(colleague);
+  data = assign(data, "2026-05-01", employee.id, { category: "other", memo: "교육" });
+  data = assign(data, "2026-05-02", employee.id, { category: "leave" });
+  data = assign(data, "2026-05-01", colleague.id, { category: "off" });
+  const before = structuredClone(data);
+  const output = buildSchedulePdfData(data, "2026-05", {}, employee.id);
+  const rows = output.calendars.flatMap((calendar) => calendar.weeks.flatMap((week) => week.flatMap((day) => day.rows)));
+
+  assert.equal(output.calendarTitle, "김지우 근무표");
+  assert.equal(output.filename, "shiftfit-2026-05-김지우.pdf");
+  assert.deepEqual(output.employees.map((person) => person.id), [employee.id]);
+  assert.deepEqual(output.employees[0].counts, { work: 0, off: 0, leave: 1, other: 1 });
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((row) => row.employee.id === employee.id));
+  assert.equal(rows[0].assignment.memo, "교육");
+  assert.deepEqual(data, before);
+  const all = buildSchedulePdfData(data, "2026-05", {});
+  assert.equal(all.calendarTitle, "전체 근무표");
+  assert.equal(all.employees.length, 2);
+  assert.equal(all.title, output.title);
+});
+
+test("개인 출력은 해당 월의 직원만 허용하고 일정이 없는 직원도 빈 달력으로 출력한다", () => {
+  const data = base();
+  data.employees.push({ ...employee, id: "future", startDate: "2026-06-01" });
+
+  assert.throws(() => buildSchedulePdfData(data, "2026-05", {}, "future"));
+  assert.throws(() => buildSchedulePdfData(data, "2026-05", {}, "missing"));
+  const output = buildSchedulePdfData(data, "2026-05", {}, employee.id);
+  assert.equal(output.employees.length, 1);
+  assert.equal(output.calendars.length, 1);
+  assert.ok(output.calendars[0].weeks.flat().every((day) => day.rows.length === 0));
+});
