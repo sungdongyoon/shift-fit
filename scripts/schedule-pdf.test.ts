@@ -21,14 +21,14 @@ test("PDF는 선택한 월의 모든 직원과 네 종류의 횟수, 공휴일�
   assert.equal(output.filename, "shiftfit-2026-05.pdf");
   assert.equal("target" in output, false);
   assert.equal(output.employees.length, 2);
-  assert.deepEqual(output.employees.map((person) => person.id), [employee.id, "past"]);
-  assert.deepEqual(output.employees[0].counts, { work: 1, off: 0, leave: 1, other: 1 });
+  assert.deepEqual(output.employees.map((person) => person.id), ["past", employee.id]);
+  assert.deepEqual(output.employees.find((person) => person.id === employee.id)!.counts, { work: 1, off: 0, leave: 1, other: 1 });
   const days = output.calendars[0].weeks.flat();
   assert.equal(days.find((day) => day.date === "2026-05-05")?.holiday, "어린이날");
   assert.equal(days.find((day) => day.date === "2026-05-03")?.rows[0].assignment.memo, "외부 지원");
   assert.equal(days.filter((day) => day.isCurrentMonth).length, 31);
   assert.equal(days.reduce((sum, day) => sum + day.rows.length, 0), 3);
-  assert.ok(output.employees.slice(1).every((person) => Object.values(person.counts).every((count) => count === 0)));
+  assert.ok(output.employees.filter((person) => person.id !== employee.id).every((person) => Object.values(person.counts).every((count) => count === 0)));
   assert.ok(days.filter((day) => !day.isCurrentMonth).every((day) => day.rows.length === 0));
   assert.deepEqual(data, before);
 });

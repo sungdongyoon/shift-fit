@@ -2,12 +2,20 @@
 
 import { useMemo } from "react";
 import { buildMonthCells } from "@/lib/calendar";
-import { counts, employeesInMonth, getMonthShiftTypes } from "@/lib/schedule";
+import {
+  counts,
+  employeesInMonth,
+  getMonthShiftTypes,
+  sortEmployeesByStartDate,
+} from "@/lib/schedule";
 import { monthlyWorkMinutes } from "@/lib/work-time";
 import { usePlannerStore } from "@/providers/planner-provider";
 
-export const useEmployees = () =>
-  usePlannerStore((state) => state.data.employees);
+export const useEmployees = () => {
+  const employees = usePlannerStore((state) => state.data.employees);
+
+  return useMemo(() => sortEmployeesByStartDate(employees), [employees]);
+};
 
 export const useShiftTypes = () => {
   const typesByMonth = usePlannerStore((state) => state.data.typesByMonth);

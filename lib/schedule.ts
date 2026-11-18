@@ -123,13 +123,20 @@ export const isValidDate = (date: string) => {
 export const employeeStartDate = (employee: Employee) =>
   employee.startDate ?? `${employee.from}-01`;
 
+export const sortEmployeesByStartDate = <T extends Employee>(employees: T[]): T[] =>
+  [...employees].sort((first, second) =>
+    employeeStartDate(first).localeCompare(employeeStartDate(second)),
+  );
+
 export const isEmployeeVisibleOn = (employee: Employee, date: string) =>
   employeeStartDate(employee) <= date && (!employee.endDate || date <= employee.endDate);
 
 export const employeesInMonth = <T extends Employee>(employees: T[], month: string) =>
-  employees.filter((employee) =>
-    employeeStartDate(employee) <= dateKey(month, daysInMonth(month)) &&
-    (!employee.endDate || employee.endDate >= `${month}-01`),
+  sortEmployeesByStartDate(
+    employees.filter((employee) =>
+      employeeStartDate(employee) <= dateKey(month, daysInMonth(month)) &&
+      (!employee.endDate || employee.endDate >= `${month}-01`),
+    ),
   );
 
 export const getAssignment = (

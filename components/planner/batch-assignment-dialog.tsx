@@ -13,6 +13,7 @@ import {
   getAssignment,
   getMonthShiftTypes,
   isEmployeeVisibleOn,
+  sortEmployeesByStartDate,
   type Category,
 } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
@@ -75,10 +76,12 @@ const BatchAssignmentForm = ({
 
   const date = context.date;
   const employees = date
-    ? data.employees.filter(
-        (employee) =>
-          isEmployeeVisibleOn(employee, date) &&
-          !getAssignment(data, date, employee.id),
+    ? sortEmployeesByStartDate(
+        data.employees.filter(
+          (employee) =>
+            isEmployeeVisibleOn(employee, date) &&
+            !getAssignment(data, date, employee.id),
+        ),
       )
     : employeesInMonth(data.employees, context.month);
   const availableDates = availableBatchDates(
