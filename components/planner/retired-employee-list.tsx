@@ -19,7 +19,6 @@ export const RetiredEmployeeList = ({ open, onOpenChange, employees }: RetiredEm
       kind: "employee",
       id: employee.id,
       name: employee.name,
-      color: employee.color,
       startDate: employeeStartDate(employee),
       endDate: employee.endDate,
       position: employee.position ?? "",

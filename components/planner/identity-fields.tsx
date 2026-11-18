@@ -38,7 +38,9 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
         placeholder="예: 매니저, 점장, 스태프"
         maxLength={30}
         value={editor.position ?? ""}
-        onChange={(event) => onChange({ ...editor, position: event.target.value })}
+        onChange={(event) =>
+          onChange({ ...editor, position: event.target.value })
+        }
       />
     )}
     {editor.kind === "employee" && (
@@ -58,7 +60,9 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
         type="date"
         min={editor.startDate}
         value={editor.endDate ?? ""}
-        onChange={(event) => onChange({ ...editor, endDate: event.target.value })}
+        onChange={(event) =>
+          onChange({ ...editor, endDate: event.target.value })
+        }
       />
     )}
     {editor.kind === "type" && (
@@ -81,31 +85,35 @@ export const IdentityFields = ({ editor, onChange }: IdentityFieldsProps) => (
         />
       </div>
     )}
-    <fieldset className="flex flex-wrap items-center gap-2.5 border-0 p-0 max-[640px]:gap-3">
-      <legend className="mb-3 text-[13px] font-medium">
-        {editor.kind === "type" ? "캘린더 표시 색상" : "직원 고유 색상"}
-      </legend>
-      {colors.map((color) => (
-        <button
-          key={color}
-          type="button"
-          style={{ background: color }}
-          aria-label={`색상 ${color}`}
-          aria-pressed={editor.color === color}
-          onClick={() => onChange({ ...editor, color })}
-          className="grid size-[29px] place-items-center rounded-full border-2 border-transparent text-white aria-pressed:outline-2 aria-pressed:outline-content aria-pressed:outline-offset-3"
-        >
-          {editor.color === color && <Glyph name="check" />}
-        </button>
-      ))}
-      <input
-        aria-label="직접 색상 선택"
-        type="color"
-        value={editor.color}
-        onChange={(event) => onChange({ ...editor, color: event.target.value })}
-        className="size-[29px] cursor-pointer border-0 bg-transparent p-0"
-      />
-    </fieldset>
+    {editor.kind === "type" && (
+      <fieldset className="flex flex-wrap items-center gap-2.5 border-0 p-0 max-[640px]:gap-3">
+        <legend className="mb-3 text-[13px] font-medium">
+          캘린더 표시 색상
+        </legend>
+        {colors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            style={{ background: color }}
+            aria-label={`색상 ${color}`}
+            aria-pressed={editor.color === color}
+            onClick={() => onChange({ ...editor, color })}
+            className="grid size-[29px] place-items-center rounded-full border-2 border-transparent text-white aria-pressed:outline-2 aria-pressed:outline-content aria-pressed:outline-offset-3"
+          >
+            {editor.color === color && <Glyph name="check" />}
+          </button>
+        ))}
+        <input
+          aria-label="직접 색상 선택"
+          type="color"
+          value={editor.color}
+          onChange={(event) =>
+            onChange({ ...editor, color: event.target.value })
+          }
+          className="size-[29px] cursor-pointer border-0 bg-transparent p-0"
+        />
+      </fieldset>
+    )}
     <p className="rounded-control bg-canvas-subtle p-3 text-[11px] leading-[1.9] text-content-tertiary">
       {identityDescription(editor)}
     </p>

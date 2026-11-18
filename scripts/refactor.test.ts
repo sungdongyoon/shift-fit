@@ -85,7 +85,6 @@ test("분리된 편집 명령은 중복 이름을 거부하고 직원 이력을 
   const duplicate = saveScheduleEditor(data, "2026-11", {
     kind: "employee", startDate: "2026-01-01",
     name: " 김지우 ",
-    color: "#5686D6",
   });
   assert.equal(duplicate.ok, false);
 
@@ -93,7 +92,6 @@ test("분리된 편집 명령은 중복 이름을 거부하고 직원 이력을 
     kind: "employee", startDate: "2026-01-01",
     id: employee.id,
     name: "변경된 이름",
-    color: "#000000",
   });
   assert.equal(updated.ok, true);
   if (!updated.ok) return;
@@ -122,7 +120,7 @@ test("직원 추가를 실행 취소하면 강조 상태도 해제한다", () =>
   });
   store
     .getState()
-    .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "추가 직원", color: "#5686D6" });
+    .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "추가 직원" });
   store.getState().selectEmployee(store.getState().data.employees[0].id);
   store.getState().undoLastChange();
   assert.equal(store.getState().data.employees.length, 0);

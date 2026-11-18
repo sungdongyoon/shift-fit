@@ -6,6 +6,9 @@ export type AssignmentCounts = Record<Category, number>;
 
 export const DEFAULT_OFF_TARGET = 8;
 
+// 기존 DB의 직원 색상 필수 컬럼과 호환하기 위한 내부 기본값입니다.
+export const LEGACY_EMPLOYEE_COLOR = "#64748B";
+
 export type ShiftType = {
   id: string;
   name: string;
@@ -18,6 +21,7 @@ export type ShiftType = {
 export type Employee = {
   id: string;
   name: string;
+  // DB 호환용으로만 유지하며 직원 표시나 편집에는 사용하지 않습니다.
   color: string;
   from: string;
   position?: string;

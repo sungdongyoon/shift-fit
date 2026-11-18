@@ -17,7 +17,6 @@ export type EmployeeEditor = {
   position?: string;
   id?: string;
   name: string;
-  color: string;
 };
 
 export type ShiftTypeEditor = {

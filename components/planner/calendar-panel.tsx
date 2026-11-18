@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { useHolidays } from "@/hooks/use-holidays";
 import { useMonthCalendar } from "@/hooks/use-month-schedule";
-import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { SavePlannerButton } from "./save-planner-button";
 import { PdfExportButton } from "./pdf-export-button";
@@ -136,7 +135,6 @@ export const CalendarPanel = () => {
                 kind: "employee",
                 startDate: "",
                 name: "",
-                color: colors[0],
               })
             }
             className="text-xs/normal"

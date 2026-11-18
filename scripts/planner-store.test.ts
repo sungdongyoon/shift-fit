@@ -55,7 +55,7 @@ const addEmployee = (store: ReturnType<typeof createPlannerStore>) => {
   assert.equal(
     store
       .getState()
-      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "김지우", color: "#5686D6" }),
+      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "김지우" }),
     null,
   );
 
@@ -235,7 +235,7 @@ test("불러오기 실패 상태는 편집을 차단하고 재시도로 회복�
   assert.ok(
     store
       .getState()
-      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "차단", color: "#5686D6" }),
+      .saveEditor({ kind: "employee", startDate: "2026-01-01", name: "차단" }),
   );
   store.getState().loadExample();
   assert.equal(store.getState().data.employees.length, 0);

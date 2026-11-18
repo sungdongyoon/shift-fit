@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { counts, initial, isValidDate, isEmployeeVisibleOn, employeesInMonth, type Schedule } from "../lib/schedule";
+import { counts, LEGACY_EMPLOYEE_COLOR, initial, isValidDate, isEmployeeVisibleOn, employeesInMonth, type Schedule } from "../lib/schedule";
 import { saveScheduleEditor } from "../lib/schedule-commands";
 import { buildSchedulePdfData } from "../lib/schedule-pdf-data";
 import { fromPlannerRows, toPlannerPayload } from "../lib/planner-data";
@@ -20,12 +20,12 @@ test("근무 시작일은 필수이며 실제 존재하는 날짜만 허용한�
   for (const startDate of ["", "2026-02-29", "2026-11-31", "2026-13-01"]) {
     assert.equal(isValidDate(startDate), false);
     assert.equal(saveScheduleEditor(initial, "2026-11", {
-      kind: "employee", name: "신규", color: employee.color, startDate,
+      kind: "employee", name: "신규", startDate,
     }).ok, false);
   }
   assert.equal(isValidDate("2028-02-29"), true);
   const result = saveScheduleEditor(initial, "2026-11", {
-    kind: "employee", name: "신규", color: employee.color, startDate: "2026-10-01",
+    kind: "employee", name: "신규", startDate: "2026-10-01",
   });
   assert.equal(result.ok, true);
   if (result.ok) assert.equal(result.data.employees[0].startDate, "2026-10-01");
@@ -83,4 +83,24 @@ test("달력 추가·수정 진입도 시작 전 근무자를 선택하지 않�
   assert.equal(store.getState().editor, null);
   store.getState().addAssignment("2026-11-15");
   assert.equal(store.getState().batchAssignment?.date, "2026-11-15");
+});
+
+
+test("직원 색상을 입력하지 않아도 신규 등록·저장할 수 있고 기존 DB 호환값은 보존한다", () => {
+  const created = saveScheduleEditor(structuredClone(initial), "2026-11", {
+    kind: "employee", name: "신규 직원", startDate: "2026-11-01",
+  });
+  assert.equal(created.ok, true);
+  if (!created.ok) return;
+
+  assert.equal(created.data.employees[0].color, LEGACY_EMPLOYEE_COLOR);
+  assert.equal(toPlannerPayload(created.data).employees[0].color, LEGACY_EMPLOYEE_COLOR);
+  const updated = saveScheduleEditor(sample(), "2026-11", {
+    kind: "employee", id: employee.id, name: "이름 변경", startDate: employee.startDate,
+  });
+  assert.equal(updated.ok, true);
+  if (!updated.ok) return;
+
+  assert.equal(updated.data.employees[0].color, employee.color);
+  assert.equal(toPlannerPayload(updated.data).employees[0].color, employee.color);
 });

@@ -26,11 +26,7 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
           onClick={() => selectEmployee(employee.id)}
         >
           <span
-            className="grid size-[29px] shrink-0 place-items-center rounded-[10px] text-xs/normal font-semibold"
-            style={{
-              background: `${employee.color}18`,
-              color: employee.color,
-            }}
+            className="grid size-[29px] shrink-0 place-items-center rounded-[10px] bg-canvas-subtle text-xs/normal font-semibold text-content-secondary"
           >
             {employee.name.slice(0, 1)}
           </span>
@@ -56,7 +52,6 @@ export const EmployeeCard = ({ employee }: EmployeeCardProps) => {
               position: employee.position ?? "",
               id: employee.id,
               name: employee.name,
-              color: employee.color,
             })
           }
         >

@@ -8,7 +8,7 @@ import {
   assign,
   isValidDate,
   isEmployeeVisibleOn,
-  colors,
+  LEGACY_EMPLOYEE_COLOR,
   dateKey,
   daysInMonth,
   DEFAULT_OFF_TARGET,
@@ -130,7 +130,7 @@ const saveEmployee = (
   const employee: Employee = {
     id: editor.id ?? createId(),
     name,
-    color: editor.color,
+    color: existing?.color ?? LEGACY_EMPLOYEE_COLOR,
     from: month,
     startDate: editor.startDate,
     ...(position ? { position } : {}),
@@ -139,7 +139,7 @@ const saveEmployee = (
     ? data.employees.map((item) => {
       if (item.id !== editor.id) return item;
 
-      const updated = { ...item, name, color: editor.color, startDate: editor.startDate };
+      const updated = { ...item, name, startDate: editor.startDate };
       if (position) updated.position = position;
       else delete updated.position;
 
@@ -287,10 +287,10 @@ export const createExampleSchedule = (
   const exampleTypes = availableTypes.length
     ? availableTypes
     : DEFAULT_SHIFT_TYPES.map((type) => ({ ...type, id: crypto.randomUUID() }));
-  const employees = ["김지우", "이도윤", "박서연", "최하준"].map((name, index) => ({
+  const employees = ["김지우", "이도윤", "박서연", "최하준"].map((name) => ({
     id: crypto.randomUUID(),
     name,
-    color: colors[index],
+    color: LEGACY_EMPLOYEE_COLOR,
     from: month,
     startDate: `${month}-01`,
   }));

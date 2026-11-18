@@ -3,7 +3,6 @@
 import { PanelHeading } from "./panel-heading";
 import { useState } from "react";
 import { useMonthSchedule } from "@/hooks/use-month-schedule";
-import { colors } from "@/lib/schedule";
 import { usePlannerStore } from "@/providers/planner-provider";
 import { FaPlus } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
@@ -36,7 +35,6 @@ export const EmployeeList = () => {
       kind: "employee",
       startDate: "",
       name: "",
-      color: colors[employees.length % colors.length],
     });
   };
 
